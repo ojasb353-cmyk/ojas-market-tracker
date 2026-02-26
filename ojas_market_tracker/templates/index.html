@@ -1,95 +1,117 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ojas Macro Intelligence Terminal</title>
-    <meta http-equiv="refresh" content="60">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+<title>Ojas Global Macro Terminal</title>
+<meta http-equiv="refresh" content="60">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 
 <style>
-body {
-    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-    min-height:100vh;
-    font-family:'Inter',sans-serif;
-    color:white;
-    margin:0;
+body{
+background:#0b1118;
+color:white;
+font-family:'Inter',sans-serif;
+margin:0;
 }
 
-.header {
-    text-align:center;
-    padding:50px 20px;
+.header{
+padding:40px;
+text-align:center;
+border-bottom:1px solid #1f2a36;
 }
 
-.title {
-    font-size:36px;
-    font-weight:900;
+.title{
+font-size:36px;
+font-weight:900;
 }
 
-.time {
-    margin-top:8px;
-    font-size:13px;
-    opacity:0.6;
+.time{
+opacity:0.5;
+font-size:13px;
+margin-top:6px;
 }
 
-.grid {
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-    gap:25px;
-    padding:40px;
+.section{
+padding:30px 50px;
 }
 
-.card {
-    background:rgba(255,255,255,0.07);
-    padding:25px;
-    border-radius:15px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.4);
+.section-title{
+font-size:18px;
+font-weight:700;
+margin-bottom:20px;
+color:#00c8ff;
 }
 
-.price {
-    font-size:24px;
-    font-weight:800;
-    margin:10px 0;
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+gap:20px;
 }
 
-.positive { color:#00ffb3; }
-.negative { color:#ff4d6d; }
-
-.fallback {
-    text-align:center;
-    margin-top:60px;
-    font-size:18px;
-    opacity:0.7;
+.card{
+background:#121b26;
+padding:20px;
+border-radius:12px;
+border:1px solid #1f2a36;
+transition:0.2s;
 }
+
+.card:hover{
+border-color:#00c8ff;
+}
+
+.price{
+font-size:20px;
+font-weight:800;
+margin-top:6px;
+}
+
+.pos{color:#00ff9c;}
+.neg{color:#ff4d6d;}
+.small{font-size:12px;opacity:0.6;}
 </style>
 </head>
 <body>
 
 <div class="header">
-    <div class="title">Ojas Macro Intelligence Terminal</div>
-    <div class="time">Live System Time | {{ time }}</div>
+<div class="title">Ojas Global Macro Terminal</div>
+<div class="time">Live | {{ time }}</div>
 </div>
 
-{% if data and data|length > 0 %}
+{% set groups = {
+"Commodities":["Crude Oil","Natural Gas","Gold","Silver","Copper","Wheat"],
+"Foreign Exchange":["USD/INR","EUR/INR","AED/INR"],
+"Global Equity":["S&P 500","Dow Jones","NASDAQ","Shanghai Composite","Hang Seng"],
+"India Equity":["NIFTY 50","Sensex"],
+"Crypto":["Bitcoin","Ethereum"],
+"Bond Yields":["US 10Y Yield","India 10Y"],
+"Policy Rates":["Fed Funds Rate","RBI Repo Rate"]
+} %}
+
+{% for group, items in groups.items() %}
+<div class="section">
+<div class="section-title">{{ group }}</div>
 <div class="grid">
-    {% for name, item in data.items() %}
-    <div class="card">
-        <h3>{{ name }}</h3>
-        <div class="price">{{ item.price }}</div>
+{% for item in items %}
+{% if data[item] %}
+<div class="card">
+<div>{{ item }}</div>
+<div class="price">{{ data[item].price }}</div>
 
-        {% if item.change > 0 %}
-            <div class="positive">{{ item.change }}% ▲</div>
-        {% else %}
-            <div class="negative">{{ item.change }}% ▼</div>
-        {% endif %}
-
-        <div>{{ item.sentiment }}</div>
-    </div>
-    {% endfor %}
-</div>
+{% if data[item].change > 0 %}
+<div class="pos">{{ data[item].change }}% ▲</div>
+{% elif data[item].change < 0 %}
+<div class="neg">{{ data[item].change }}% ▼</div>
 {% else %}
-<div class="fallback">
-    Market data loading... Please refresh in a few seconds.
+<div class="small">Stable</div>
+{% endif %}
+
+<div class="small">{{ data[item].sentiment }}</div>
 </div>
 {% endif %}
+{% endfor %}
+</div>
+</div>
+{% endfor %}
 
 </body>
 </html>
