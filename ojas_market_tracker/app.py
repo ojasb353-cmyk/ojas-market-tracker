@@ -77,8 +77,8 @@ def home():
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
     return render_template("index.html", data=market_data, time=now)
 
-import os
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+@app.route("/")
+def home():
+    market_data = get_data()
+    now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
+    return render_template("index.html", data=market_data, time=now)
