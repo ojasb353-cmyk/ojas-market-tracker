@@ -1,13 +1,12 @@
 from flask import Flask, render_template
 import yfinance as yf
-import pandas as pd
 import datetime
 
 app = Flask(__name__)
 
-# -------------------------------
-# SYMBOLS (Native Currency)
-# -------------------------------
+# ---------------------------------
+# SYMBOLS
+# ---------------------------------
 
 symbols = {
     # Commodities (convert to INR)
@@ -31,22 +30,31 @@ symbols = {
     "Bitcoin": "BTC-USD",
     "Ethereum": "ETH-USD",
 
-    # Rates & Risk
+    # Macro
     "US 10Y Yield": "^TNX",
     "VIX": "^VIX",
-    "USD Index (DXY)": "DX-Y.NYB",
+    "USD Index (DXY)": "DX-Y.NYB"
 }
 
-# -------------------------------
-# Helper Functions
-# -------------------------------
+
+# ---------------------------------
+# SAFE USDINR FETCH
+# ---------------------------------
 
 def get_usd_inr():
-    usd = yf.Ticker("USDINR=X")
-    data = usd.history(period="1d")
-    return data["Close"].iloc[-1]
+    try:
+        usd = yf.Ticker("USDINR=X")
+        data = usd.history(period="1d")
+        return float(data["Close"].iloc[-1])
+    except:
+        return 83.0  # fallback safe rate
 
-def format_currency(value, currency):
+
+# ---------------------------------
+# FORMATTER
+# ---------------------------------
+
+def format_price(value, currency):
     if currency == "INR":
         return f"₹ {value:,.2f}"
     elif currency == "USD":
@@ -55,12 +63,15 @@ def format_currency(value, currency):
         return f"HK$ {value:,.2f}"
     elif currency == "CNY":
         return f"¥ {value:,.2f}"
+    elif currency == "%":
+        return f"{value:.2f}%"
     else:
         return f"{value:,.2f}"
 
-# -------------------------------
-# Core Data Function
-# -------------------------------
+
+# ---------------------------------
+# CORE DATA
+# ---------------------------------
 
 def get_data():
     data = {}
@@ -74,14 +85,15 @@ def get_data():
             if len(hist) < 2:
                 continue
 
-            current = hist["Close"].iloc[-1]
-            previous = hist["Close"].iloc[-2]
+            current = float(hist["Close"].iloc[-1])
+            previous = float(hist["Close"].iloc[-2])
             change = ((current - previous) / previous) * 100
+
             sentiment = "Bullish 📈" if change > 0 else "Bearish 📉"
 
             currency = "USD"
 
-            # Native currency adjustments
+            # Native currencies
             if name in ["NIFTY 50", "Sensex"]:
                 currency = "INR"
 
@@ -108,21 +120,31 @@ def get_data():
                 current = (current / 31.1035) * 1000
 
             data[name] = {
-                "price": format_currency(current, currency) if currency != "%" else f"{current:.2f}%",
+                "price": format_price(current, currency),
                 "change": round(change, 2),
-                "sentiment": sentiment,
-                "currency": currency
+                "sentiment": sentiment
             }
 
-        except Exception:
-            continue
+        except:
+            data[name] = {
+                "price": "N/A",
+                "change": 0,
+                "sentiment": "Data Error"
+            }
+
+    # Add RBI Repo (static reference)
+    data["RBI Repo Rate"] = {
+        "price": "6.50%",
+        "change": 0,
+        "sentiment": "Stable"
+    }
 
     return data
 
 
-# -------------------------------
-# Risk Mode Logic
-# -------------------------------
+# ---------------------------------
+# RISK MODE
+# ---------------------------------
 
 def get_risk_mode(data):
     try:
@@ -141,12 +163,24 @@ def get_risk_mode(data):
         return "NEUTRAL 🟡"
 
 
+# ---------------------------------
+# ROUTE
+# ---------------------------------
+
 @app.route("/")
 def home():
-    market_data = get_data()
-    risk_mode = get_risk_mode(market_data)
+    try:
+        market_data = get_data()
+        risk_mode = get_risk_mode(market_data)
+    except:
+        market_data = {}
+        risk_mode = "DATA TEMPORARILY UNAVAILABLE"
+
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
-    return render_template("index.html",
-                           data=market_data,
-                           time=now,
-                           risk=risk_mode)
+
+    return render_template(
+        "index.html",
+        data=market_data,
+        time=now,
+        risk=risk_mode
+    )
