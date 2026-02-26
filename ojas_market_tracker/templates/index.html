@@ -1,81 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ojas's Personal Market Tracker</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ojas Global Macro Dashboard</title>
     <meta http-equiv="refresh" content="60">
     <style>
         body {
             margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background: #0f172a;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
             color: white;
         }
-        header {
-            background: linear-gradient(90deg,#0f2027,#203a43,#2c5364);
+
+        h1 {
+            text-align: center;
             padding: 20px;
-            text-align: center;
-            font-size: 26px;
-            font-weight: bold;
-            letter-spacing: 1px;
+            margin: 0;
         }
-        .clock {
+
+        .risk {
             text-align: center;
-            font-size: 14px;
-            color: #aaa;
+            font-size: 20px;
             margin-bottom: 10px;
         }
-        .container {
+
+        .time {
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
-            gap: 15px;
-            padding: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            padding: 30px;
         }
+
         .card {
-            background: #1e293b;
-            padding: 18px;
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
             border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.6);
-            transition: 0.3s;
+            backdrop-filter: blur(10px);
         }
-        .card:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 30px rgba(59,130,246,0.6);
-        }
+
         .price {
             font-size: 22px;
-            font-weight: bold;
+            margin: 10px 0;
         }
-        .currency {
-            font-size: 12px;
-            color: #ccc;
-        }
-        .positive { color: #22c55e; }
-        .negative { color: #ef4444; }
+
+        .positive { color: #00ff9c; }
+        .negative { color: #ff4d4d; }
+
     </style>
 </head>
 <body>
 
-<header>
-    Ojas's Personal Market Tracker
-</header>
+<h1>Ojas Global Macro Dashboard</h1>
+<div class="risk">{{ risk }}</div>
+<div class="time">Live Market Bulletin | {{ time }}</div>
 
-<div class="clock">
-    Live Market Bulletin | {{ time }}
-</div>
-
-<div class="container">
-    {% for key, value in data.items() %}
+<div class="grid">
+    {% for name, item in data.items() %}
     <div class="card">
-        <h3>{{ key }}</h3>
-        <div class="price">
-            ₹ {{ value.price }} 
-            <span class="currency">({{ value.currency }})</span>
-        </div>
-        <div class="{% if value.change > 0 %}positive{% else %}negative{% endif %}">
-            {{ value.change }} %
-        </div>
-        <div>{{ value.sentiment }}</div>
+        <h3>{{ name }}</h3>
+        <div class="price">{{ item.price }}</div>
+
+        {% if item.change > 0 %}
+            <div class="positive">{{ item.change }} %</div>
+        {% else %}
+            <div class="negative">{{ item.change }} %</div>
+        {% endif %}
+
+        <div>{{ item.sentiment }}</div>
     </div>
     {% endfor %}
 </div>

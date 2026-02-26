@@ -1,92 +1,152 @@
 from flask import Flask, render_template
 import yfinance as yf
+import pandas as pd
 import datetime
 
 app = Flask(__name__)
 
+# -------------------------------
+# SYMBOLS (Native Currency)
+# -------------------------------
+
 symbols = {
-    "Crude Oil": {"ticker": "CL=F", "currency": "USD"},
-    "Natural Gas": {"ticker": "NG=F", "currency": "USD"},
-    "Gold": {"ticker": "GC=F", "currency": "USD"},
-    "Silver": {"ticker": "SI=F", "currency": "USD"},
-    "Copper": {"ticker": "HG=F", "currency": "USD"},
-    "Wheat": {"ticker": "ZW=F", "currency": "USD"},
-    "S&P 500": {"ticker": "^GSPC", "currency": "USD"},
-    "Dow Jones": {"ticker": "^DJI", "currency": "USD"},
-    "NASDAQ": {"ticker": "^IXIC", "currency": "USD"},
-    "Shanghai Composite": {"ticker": "000001.SS", "currency": "CNY"},
-    "Hang Seng": {"ticker": "^HSI", "currency": "HKD"},
-    "NIFTY 50": {"ticker": "^NSEI", "currency": "INR"},
-    "Sensex": {"ticker": "^BSESN", "currency": "INR"},
-    "Bitcoin": {"ticker": "BTC-USD", "currency": "USD"},
-    "Ethereum": {"ticker": "ETH-USD", "currency": "USD"},
-    "US 10Y Yield": {"ticker": "^TNX", "currency": "%"},
+    # Commodities (convert to INR)
+    "Crude Oil": "CL=F",
+    "Natural Gas": "NG=F",
+    "Gold": "GC=F",
+    "Silver": "SI=F",
+    "Copper": "HG=F",
+    "Wheat": "ZW=F",
+
+    # Equity Indices (native currency)
+    "S&P 500": "^GSPC",
+    "Dow Jones": "^DJI",
+    "NASDAQ": "^IXIC",
+    "Shanghai Composite": "000001.SS",
+    "Hang Seng": "^HSI",
+    "NIFTY 50": "^NSEI",
+    "Sensex": "^BSESN",
+
+    # Crypto
+    "Bitcoin": "BTC-USD",
+    "Ethereum": "ETH-USD",
+
+    # Rates & Risk
+    "US 10Y Yield": "^TNX",
+    "VIX": "^VIX",
+    "USD Index (DXY)": "DX-Y.NYB",
 }
 
+# -------------------------------
+# Helper Functions
+# -------------------------------
+
 def get_usd_inr():
-    usd = yf.Ticker("INR=X")
-    hist = usd.history(period="1d")
-    return float(hist["Close"].iloc[-1])
+    usd = yf.Ticker("USDINR=X")
+    data = usd.history(period="1d")
+    return data["Close"].iloc[-1]
+
+def format_currency(value, currency):
+    if currency == "INR":
+        return f"₹ {value:,.2f}"
+    elif currency == "USD":
+        return f"$ {value:,.2f}"
+    elif currency == "HKD":
+        return f"HK$ {value:,.2f}"
+    elif currency == "CNY":
+        return f"¥ {value:,.2f}"
+    else:
+        return f"{value:,.2f}"
+
+# -------------------------------
+# Core Data Function
+# -------------------------------
 
 def get_data():
     data = {}
     usd_inr = get_usd_inr()
 
-    for name, info in symbols.items():
+    for name, ticker in symbols.items():
         try:
-            stock = yf.Ticker(info["ticker"])
+            stock = yf.Ticker(ticker)
             hist = stock.history(period="2d")
 
-            if len(hist) >= 2:
-                current = float(hist["Close"].iloc[-1])
-                previous = float(hist["Close"].iloc[-2])
+            if len(hist) < 2:
+                continue
 
-                change = ((current - previous) / previous) * 100
-                sentiment = "Bullish 📈" if change > 0 else "Bearish 📉"
+            current = hist["Close"].iloc[-1]
+            previous = hist["Close"].iloc[-2]
+            change = ((current - previous) / previous) * 100
+            sentiment = "Bullish 📈" if change > 0 else "Bearish 📉"
 
-                display_price = current
-                currency_label = info["currency"]
+            currency = "USD"
 
-                # Convert USD assets to INR
-                if info["currency"] == "USD":
-                    display_price = current * usd_inr
-                    currency_label = "INR"
+            # Native currency adjustments
+            if name in ["NIFTY 50", "Sensex"]:
+                currency = "INR"
 
-                # Special conversions
-                if name == "Gold":
-                    # Gold future is per ounce
-                    # 1 ounce = 31.1035 grams
-                    grams_price = (current * usd_inr) / 31.1035
-                    display_price = grams_price * 10   # per 10g
-                    currency_label = "INR per 10g"
+            elif name == "Hang Seng":
+                currency = "HKD"
 
-                if name == "Silver":
-                    # Silver future is per ounce
-                    # Convert to per kg
-                    grams_price = (current * usd_inr) / 31.1035
-                    display_price = grams_price * 1000   # per kg
-                    currency_label = "INR per kg"
+            elif name == "Shanghai Composite":
+                currency = "CNY"
 
-                data[name] = {
-                    "price": round(display_price, 2),
-                    "change": round(change, 2),
-                    "sentiment": sentiment,
-                    "currency": currency_label
-                }
+            elif name in ["US 10Y Yield", "VIX"]:
+                currency = "%"
 
-        except Exception:
+            # Convert commodities to INR
+            if name in ["Crude Oil", "Natural Gas", "Gold", "Silver", "Copper", "Wheat"]:
+                current = current * usd_inr
+                currency = "INR"
+
+            # Gold per 10g
+            if name == "Gold":
+                current = (current / 31.1035) * 10
+
+            # Silver per kg
+            if name == "Silver":
+                current = (current / 31.1035) * 1000
+
             data[name] = {
-                "price": "N/A",
-                "change": 0,
-                "sentiment": "No Data",
-                "currency": ""
+                "price": format_currency(current, currency) if currency != "%" else f"{current:.2f}%",
+                "change": round(change, 2),
+                "sentiment": sentiment,
+                "currency": currency
             }
 
+        except Exception:
+            continue
+
     return data
+
+
+# -------------------------------
+# Risk Mode Logic
+# -------------------------------
+
+def get_risk_mode(data):
+    try:
+        sp = data["S&P 500"]["change"]
+        btc = data["Bitcoin"]["change"]
+        gold = data["Gold"]["change"]
+        vix = data["VIX"]["change"]
+
+        if sp > 0 and btc > 0:
+            return "RISK ON 🟢"
+        elif gold > 0 and vix > 0:
+            return "RISK OFF 🔴"
+        else:
+            return "NEUTRAL 🟡"
+    except:
+        return "NEUTRAL 🟡"
 
 
 @app.route("/")
 def home():
     market_data = get_data()
+    risk_mode = get_risk_mode(market_data)
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
-    return render_template("index.html", data=market_data, time=now)
+    return render_template("index.html",
+                           data=market_data,
+                           time=now,
+                           risk=risk_mode)
