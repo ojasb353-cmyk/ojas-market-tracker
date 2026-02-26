@@ -4,42 +4,13 @@ import datetime
 
 app = Flask(__name__)
 
-# ---------------------------------
-# SYMBOLS
-# ---------------------------------
-
 symbols = {
-    # Commodities (convert to INR)
-    "Crude Oil": "CL=F",
-    "Natural Gas": "NG=F",
-    "Gold": "GC=F",
-    "Silver": "SI=F",
-    "Copper": "HG=F",
-    "Wheat": "ZW=F",
-
-    # Equity Indices (native currency)
     "S&P 500": "^GSPC",
-    "Dow Jones": "^DJI",
-    "NASDAQ": "^IXIC",
-    "Shanghai Composite": "000001.SS",
-    "Hang Seng": "^HSI",
     "NIFTY 50": "^NSEI",
-    "Sensex": "^BSESN",
-
-    # Crypto
+    "Gold (INR per 10g)": "GC=F",
     "Bitcoin": "BTC-USD",
-    "Ethereum": "ETH-USD",
-
-    # Macro
     "US 10Y Yield": "^TNX",
-    "VIX": "^VIX",
-    "USD Index (DXY)": "DX-Y.NYB"
 }
-
-
-# ---------------------------------
-# SAFE USDINR FETCH
-# ---------------------------------
 
 def get_usd_inr():
     try:
@@ -47,31 +18,7 @@ def get_usd_inr():
         data = usd.history(period="1d")
         return float(data["Close"].iloc[-1])
     except:
-        return 83.0  # fallback safe rate
-
-
-# ---------------------------------
-# FORMATTER
-# ---------------------------------
-
-def format_price(value, currency):
-    if currency == "INR":
-        return f"₹ {value:,.2f}"
-    elif currency == "USD":
-        return f"$ {value:,.2f}"
-    elif currency == "HKD":
-        return f"HK$ {value:,.2f}"
-    elif currency == "CNY":
-        return f"¥ {value:,.2f}"
-    elif currency == "%":
-        return f"{value:.2f}%"
-    else:
-        return f"{value:,.2f}"
-
-
-# ---------------------------------
-# CORE DATA
-# ---------------------------------
+        return 83.0
 
 def get_data():
     data = {}
@@ -89,98 +36,41 @@ def get_data():
             previous = float(hist["Close"].iloc[-2])
             change = ((current - previous) / previous) * 100
 
-            sentiment = "Bullish 📈" if change > 0 else "Bearish 📉"
-
-            currency = "USD"
-
-            # Native currencies
-            if name in ["NIFTY 50", "Sensex"]:
-                currency = "INR"
-
-            elif name == "Hang Seng":
-                currency = "HKD"
-
-            elif name == "Shanghai Composite":
-                currency = "CNY"
-
-            elif name in ["US 10Y Yield", "VIX"]:
-                currency = "%"
-
-            # Convert commodities to INR
-            if name in ["Crude Oil", "Natural Gas", "Gold", "Silver", "Copper", "Wheat"]:
+            # Gold conversion
+            if "Gold" in name:
                 current = current * usd_inr
-                currency = "INR"
-
-            # Gold per 10g
-            if name == "Gold":
                 current = (current / 31.1035) * 10
-
-            # Silver per kg
-            if name == "Silver":
-                current = (current / 31.1035) * 1000
+                price = f"₹ {current:,.2f}"
+            elif name == "NIFTY 50":
+                price = f"₹ {current:,.2f}"
+            elif name == "US 10Y Yield":
+                price = f"{current:.2f}%"
+            else:
+                price = f"$ {current:,.2f}"
 
             data[name] = {
-                "price": format_price(current, currency),
+                "price": price,
                 "change": round(change, 2),
-                "sentiment": sentiment
+                "sentiment": "Bullish 📈" if change > 0 else "Bearish 📉"
             }
 
         except:
             data[name] = {
-                "price": "N/A",
+                "price": "Data Error",
                 "change": 0,
-                "sentiment": "Data Error"
+                "sentiment": "Unavailable"
             }
-
-    # Add RBI Repo (static reference)
-    data["RBI Repo Rate"] = {
-        "price": "6.50%",
-        "change": 0,
-        "sentiment": "Stable"
-    }
 
     return data
 
 
-# ---------------------------------
-# RISK MODE
-# ---------------------------------
-
-def get_risk_mode(data):
-    try:
-        sp = data["S&P 500"]["change"]
-        btc = data["Bitcoin"]["change"]
-        gold = data["Gold"]["change"]
-        vix = data["VIX"]["change"]
-
-        if sp > 0 and btc > 0:
-            return "RISK ON 🟢"
-        elif gold > 0 and vix > 0:
-            return "RISK OFF 🔴"
-        else:
-            return "NEUTRAL 🟡"
-    except:
-        return "NEUTRAL 🟡"
-
-
-# ---------------------------------
-# ROUTE
-# ---------------------------------
-
 @app.route("/")
 def home():
-    try:
-        market_data = get_data()
-        risk_mode = get_risk_mode(market_data)
-    except:
-        market_data = {}
-        risk_mode = "DATA TEMPORARILY UNAVAILABLE"
-
+    market_data = get_data()
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
 
     return render_template(
         "index.html",
         data=market_data,
-        time=now,
-        risk=risk_mode
+        time=now
     )
