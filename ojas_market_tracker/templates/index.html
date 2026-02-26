@@ -3,7 +3,7 @@
 <head>
     <title>Ojas Macro Intelligence Terminal</title>
     <meta http-equiv="refresh" content="60">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 
 <style>
 * {
@@ -14,50 +14,51 @@
 }
 
 body {
+    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
     min-height:100vh;
-    background: linear-gradient(-45deg,#0f2027,#203a43,#1c1f2b,#0f2027);
-    background-size: 400% 400%;
-    animation: gradientMove 15s ease infinite;
     color:white;
-    overflow-x:hidden;
-}
-
-@keyframes gradientMove {
-    0%{background-position:0% 50%;}
-    50%{background-position:100% 50%;}
-    100%{background-position:0% 50%;}
 }
 
 /* HEADER */
 .header {
     text-align:center;
-    padding:50px 20px 10px 20px;
+    padding:60px 20px 30px;
 }
 
 .title {
-    font-size:44px;
+    font-size:42px;
     font-weight:900;
     letter-spacing:1px;
 }
 
 .subtitle {
     margin-top:10px;
-    font-size:16px;
+    font-size:15px;
     opacity:0.7;
 }
 
 .time {
     margin-top:6px;
-    font-size:14px;
+    font-size:13px;
     opacity:0.5;
 }
 
 /* RISK BAR */
+.risk-container {
+    width:320px;
+    margin:25px auto 0;
+}
+
+.risk-label {
+    text-align:center;
+    font-size:13px;
+    margin-bottom:6px;
+    opacity:0.6;
+}
+
 .risk-bar {
-    width:300px;
-    height:8px;
-    background:rgba(255,255,255,0.1);
-    margin:25px auto;
+    height:10px;
+    background:#1e2f3a;
     border-radius:10px;
     overflow:hidden;
 }
@@ -66,87 +67,40 @@ body {
     height:100%;
     width:60%;
     background:linear-gradient(90deg,#ff4d6d,#ff9966);
-    animation:pulseRisk 2s infinite alternate;
-}
-
-@keyframes pulseRisk {
-    from { opacity:0.7; }
-    to { opacity:1; }
-}
-
-/* TICKER */
-.ticker {
-    width:100%;
-    overflow:hidden;
-    white-space:nowrap;
-    background:rgba(255,255,255,0.05);
-    padding:10px 0;
-    margin-top:20px;
-}
-
-.ticker span {
-    display:inline-block;
-    padding-left:100%;
-    animation: tickerMove 25s linear infinite;
-}
-
-@keyframes tickerMove {
-    0%{transform:translateX(0);}
-    100%{transform:translateX(-100%);}
 }
 
 /* GRID */
 .grid {
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-    gap:30px;
-    padding:60px;
+    gap:28px;
+    padding:50px;
 }
 
 /* CARD */
 .card {
-    backdrop-filter:blur(20px);
-    background:rgba(255,255,255,0.05);
-    border-radius:22px;
+    background:rgba(255,255,255,0.06);
+    border-radius:18px;
     padding:28px;
-    box-shadow:0 20px 40px rgba(0,0,0,0.5);
-    border:1px solid rgba(255,255,255,0.08);
-    transition:all 0.4s ease;
-    position:relative;
-    overflow:hidden;
-}
-
-.card::before {
-    content:"";
-    position:absolute;
-    top:-50%;
-    left:-50%;
-    width:200%;
-    height:200%;
-    background:radial-gradient(circle,rgba(0,255,200,0.15),transparent 60%);
-    transform:rotate(25deg);
-    transition:opacity 0.4s ease;
-    opacity:0;
-}
-
-.card:hover::before {
-    opacity:1;
+    box-shadow:0 10px 25px rgba(0,0,0,0.35);
+    transition:all 0.25s ease;
 }
 
 .card:hover {
-    transform:translateY(-8px) scale(1.03);
+    transform:translateY(-6px);
+    box-shadow:0 15px 35px rgba(0,0,0,0.5);
 }
 
 .card h3 {
+    font-size:17px;
     font-weight:600;
-    font-size:18px;
-    opacity:0.85;
+    opacity:0.9;
 }
 
 .price {
-    font-size:30px;
+    font-size:28px;
     font-weight:800;
-    margin:12px 0;
+    margin:14px 0 8px;
 }
 
 .positive {
@@ -160,9 +114,9 @@ body {
 }
 
 .sentiment {
-    margin-top:6px;
-    font-size:14px;
-    opacity:0.7;
+    margin-top:5px;
+    font-size:13px;
+    opacity:0.65;
 }
 
 footer {
@@ -178,20 +132,15 @@ footer {
 
 <div class="header">
     <div class="title">Ojas Macro Intelligence Terminal</div>
-    <div class="subtitle">Tier-1 Global Risk & Liquidity Dashboard</div>
+    <div class="subtitle">Institutional Cross-Asset Risk Dashboard</div>
     <div class="time">Live System Time | {{ time }}</div>
 
-    <div class="risk-bar">
-        <div class="risk-fill"></div>
+    <div class="risk-container">
+        <div class="risk-label">Global Risk Regime Monitor</div>
+        <div class="risk-bar">
+            <div class="risk-fill"></div>
+        </div>
     </div>
-</div>
-
-<div class="ticker">
-    <span>
-        Global Liquidity • Risk Regime Monitoring • Cross-Asset Intelligence •
-        Institutional Grade Analytics • Hedge Fund Infrastructure •
-        Macro Strategy Dashboard •
-    </span>
 </div>
 
 <div class="grid">
@@ -212,7 +161,7 @@ footer {
 </div>
 
 <footer>
-    Ojas Capital Systems • Quantitative Global Macro Infrastructure • Institutional Terminal
+    Ojas Capital Systems • Quantitative Global Macro Infrastructure
 </footer>
 
 </body>
