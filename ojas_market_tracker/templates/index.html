@@ -1,43 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ojas Global Macro Terminal</title>
+<title>Ojas Macro Intelligence Terminal</title>
 <meta http-equiv="refresh" content="60">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-body{background:#0c1218;color:white;font-family:'Inter',sans-serif;margin:0}
+body{background:#0b1117;color:white;font-family:'Inter',sans-serif;margin:0}
 .header{text-align:center;padding:40px}
 .title{font-size:34px;font-weight:800}
-.time{opacity:0.5;font-size:12px;margin-top:6px}
-.section{padding:25px 50px}
+.time{opacity:0.6;font-size:12px;margin-top:5px}
+.section{padding:20px 40px}
 .section-title{color:#00c8ff;margin-bottom:15px;font-weight:600}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
-.card{background:#141d27;padding:18px;border-radius:10px;border:1px solid #1f2a36}
-.price{font-size:16px;font-weight:600;margin-top:5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px}
+.card{background:#121a22;padding:18px;border-radius:10px;border:1px solid #1f2a36}
+.asset{font-size:14px;font-weight:600}
+.price{font-size:16px;margin-top:5px}
 .pos{color:#00ff9c}
 .neg{color:#ff4d6d}
-.small{font-size:11px;opacity:0.6}
-.personal{background:#101820;padding:20px;margin:30px;border-left:3px solid #00c8ff}
+.policy{background:#101820;padding:20px;margin:30px;border-left:3px solid #00c8ff}
 </style>
 </head>
 <body>
 
 <div class="header">
-<div class="title">Ojas Global Macro Terminal</div>
+<div class="title">Ojas Macro Intelligence Terminal</div>
 <div class="time">Live | {{ time }}</div>
 </div>
 
 <div class="section">
-<div class="section-title">Commodities</div>
+<div class="section-title">Global Macro Dashboard</div>
 <div class="grid">
-{% for name,data in commodities.items() %}
+{% for name, item in data.items() %}
 <div class="card">
-<div>{{ name }}</div>
-<div class="price">{{ data.price }}</div>
-{% if data.change > 0 %}
-<div class="pos">{{ data.change }}%</div>
+<div class="asset">{{ name }}</div>
+<div class="price">{{ item.price }}</div>
+{% if item.change > 0 %}
+<div class="pos">{{ item.change }}%</div>
 {% else %}
-<div class="neg">{{ data.change }}%</div>
+<div class="neg">{{ item.change }}%</div>
 {% endif %}
 </div>
 {% endfor %}
@@ -45,51 +45,25 @@ body{background:#0c1218;color:white;font-family:'Inter',sans-serif;margin:0}
 </div>
 
 <div class="section">
-<div class="section-title">Equity — Top Movers</div>
+<div class="section-title">Policy Rates</div>
 <div class="grid">
 <div class="card">
-<div>Global Top Bull</div>
-<div class="price">{{ global_bull[0] }}</div>
-<div class="pos">{{ global_bull[1].change }}%</div>
-</div>
-<div class="card">
-<div>Global Top Bear</div>
-<div class="price">{{ global_bear[0] }}</div>
-<div class="neg">{{ global_bear[1].change }}%</div>
-</div>
-<div class="card">
-<div>India Top Bull</div>
-<div class="price">{{ india_bull[0] }}</div>
-<div class="pos">{{ india_bull[1].change }}%</div>
-</div>
-<div class="card">
-<div>India Top Bear</div>
-<div class="price">{{ india_bear[0] }}</div>
-<div class="neg">{{ india_bear[1].change }}%</div>
-</div>
-</div>
-</div>
-
-<div class="section">
-<div class="section-title">Policy & Bonds</div>
-<div class="grid">
-<div class="card">
-<div>Fed Funds Rate</div>
+<div class="asset">Fed Funds Rate</div>
 <div class="price">{{ fed }}%</div>
 </div>
 <div class="card">
-<div>RBI Repo Rate</div>
+<div class="asset">RBI Repo Rate</div>
 <div class="price">{{ rbi }}%</div>
 </div>
 </div>
 </div>
 
-<div class="personal">
+<div class="policy">
 <strong>For Ojas Only:</strong><br>
-Global liquidity tightening remains elevated.<br>
-Monitor: US 10Y + USDINR correlation.<br>
-Watch commodity momentum for tactical allocation.<br>
-Maintain dynamic hedging posture.
+• Monitor USDINR + US 10Y interaction.<br>
+• Gold strength vs Dollar Index.<br>
+• Equity risk regime vs Bond yield direction.<br>
+• Crypto volatility correlation with NASDAQ.
 </div>
 
 </body>

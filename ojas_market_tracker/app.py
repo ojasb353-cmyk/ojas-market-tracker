@@ -7,49 +7,48 @@ app = Flask(__name__)
 FED_FUNDS = 5.50
 RBI_REPO = 6.50
 
-commodities = {
+tickers = {
+    # Commodities
     "Crude Oil": "CL=F",
     "Natural Gas": "NG=F",
     "Gold": "GC=F",
     "Silver": "SI=F",
     "Copper": "HG=F",
     "Wheat": "ZW=F",
-}
 
-fx = {
+    # FX
     "USD/INR": "USDINR=X",
     "EUR/INR": "EURINR=X",
     "AED/INR": "AEDINR=X",
-}
 
-equities_global = {
+    # Global Equity
     "S&P 500": "^GSPC",
     "Dow Jones": "^DJI",
     "NASDAQ": "^IXIC",
     "Shanghai Composite": "000001.SS",
     "Hang Seng": "^HSI",
-}
 
-equities_india = {
+    # India Equity
     "NIFTY 50": "^NSEI",
     "Sensex": "^BSESN",
-}
 
-crypto = {
+    # Crypto
     "Bitcoin": "BTC-USD",
     "Ethereum": "ETH-USD",
-}
 
-bonds = {
+    # Bonds
     "US 10Y Yield": "^TNX",
+    "India 10Y": "^IN10Y"
 }
 
-def fetch_data(symbol_dict):
-    result = {}
-    for name, ticker in symbol_dict.items():
+
+def fetch_all():
+    data = {}
+
+    for name, symbol in tickers.items():
         try:
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period="2d")
+            asset = yf.Ticker(symbol)
+            hist = asset.history(period="2d")
 
             if len(hist) < 2:
                 continue
@@ -58,45 +57,34 @@ def fetch_data(symbol_dict):
             previous = float(hist["Close"].iloc[-2])
             change = ((current - previous) / previous) * 100
 
-            result[name] = {
-                "price": current,
-                "change": round(change, 2),
+            data[name] = {
+                "price_raw": current,
+                "change": round(change, 2)
             }
+
         except:
-            result[name] = {
-                "price": None,
-                "change": 0,
+            data[name] = {
+                "price_raw": None,
+                "change": 0
             }
 
-    return result
+    return data
 
 
-@app.route("/")
-def home():
-    usd_inr = 83
-    try:
-        usd = yf.Ticker("USDINR=X")
-        usd_data = usd.history(period="1d")
-        usd_inr = float(usd_data["Close"].iloc[-1])
-    except:
-        pass
+def format_prices(data):
+    formatted = {}
 
-    comm_data = fetch_data(commodities)
-    fx_data = fetch_data(fx)
-    global_eq = fetch_data(equities_global)
-    india_eq = fetch_data(equities_india)
-    crypto_data = fetch_data(crypto)
-    bond_data = fetch_data(bonds)
+    usd_inr = data.get("USD/INR", {}).get("price_raw", 83)
 
-    # Format commodities
-    formatted_comm = {}
+    for name, values in data.items():
 
-    for name, data in comm_data.items():
-        if data["price"] is None:
+        price = values["price_raw"]
+        change = values["change"]
+
+        if price is None:
             continue
 
-        price = data["price"]
-
+        # Commodities formatting
         if name == "Crude Oil":
             display = f"$ {price:,.2f} /bbl"
 
@@ -113,39 +101,49 @@ def home():
             silver_kg = (silver_inr / 31.1035) * 1000
             display = f"₹ {silver_kg:,.2f} /kg"
 
-        else:
+        elif name in ["Copper", "Wheat"]:
             display = f"$ {price:,.2f}"
 
-        formatted_comm[name] = {
+        # FX
+        elif "INR" in name:
+            display = f"{price:,.2f}"
+
+        # Crypto
+        elif name in ["Bitcoin", "Ethereum"]:
+            display = f"$ {price:,.2f}"
+
+        # Bonds
+        elif "Yield" in name or "10Y" in name:
+            display = f"{price:.2f}%"
+
+        # Equity indices (no currency)
+        else:
+            display = f"{price:,.2f}"
+
+        formatted[name] = {
             "price": display,
-            "change": data["change"]
+            "change": change
         }
 
-    # Equity Top Bull & Bear
-    def top_movers(eq_data):
-        sorted_data = sorted(eq_data.items(), key=lambda x: x[1]["change"])
-        bear = sorted_data[0]
-        bull = sorted_data[-1]
-        return bull, bear
+    return formatted
 
-    global_bull, global_bear = top_movers(global_eq)
-    india_bull, india_bear = top_movers(india_eq)
+
+@app.route("/")
+def home():
+
+    raw = fetch_all()
+    data = format_prices(raw)
 
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
 
     return render_template(
         "index.html",
-        commodities=formatted_comm,
-        fx=fx_data,
-        global_eq=global_eq,
-        india_eq=india_eq,
-        crypto=crypto_data,
-        bonds=bond_data,
+        data=data,
         fed=FED_FUNDS,
         rbi=RBI_REPO,
-        global_bull=global_bull,
-        global_bear=global_bear,
-        india_bull=india_bull,
-        india_bear=india_bear,
         time=now
     )
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
