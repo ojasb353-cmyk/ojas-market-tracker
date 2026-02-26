@@ -6,143 +6,69 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 
 <style>
-* {
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:'Inter',sans-serif;
-}
-
 body {
     background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
     min-height:100vh;
+    font-family:'Inter',sans-serif;
     color:white;
+    margin:0;
 }
 
-/* HEADER */
 .header {
     text-align:center;
-    padding:60px 20px 30px;
+    padding:50px 20px;
 }
 
 .title {
-    font-size:42px;
+    font-size:36px;
     font-weight:900;
-    letter-spacing:1px;
-}
-
-.subtitle {
-    margin-top:10px;
-    font-size:15px;
-    opacity:0.7;
 }
 
 .time {
-    margin-top:6px;
+    margin-top:8px;
     font-size:13px;
-    opacity:0.5;
-}
-
-/* RISK BAR */
-.risk-container {
-    width:320px;
-    margin:25px auto 0;
-}
-
-.risk-label {
-    text-align:center;
-    font-size:13px;
-    margin-bottom:6px;
     opacity:0.6;
 }
 
-.risk-bar {
-    height:10px;
-    background:#1e2f3a;
-    border-radius:10px;
-    overflow:hidden;
-}
-
-.risk-fill {
-    height:100%;
-    width:60%;
-    background:linear-gradient(90deg,#ff4d6d,#ff9966);
-}
-
-/* GRID */
 .grid {
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-    gap:28px;
-    padding:50px;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:25px;
+    padding:40px;
 }
 
-/* CARD */
 .card {
-    background:rgba(255,255,255,0.06);
-    border-radius:18px;
-    padding:28px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.35);
-    transition:all 0.25s ease;
-}
-
-.card:hover {
-    transform:translateY(-6px);
-    box-shadow:0 15px 35px rgba(0,0,0,0.5);
-}
-
-.card h3 {
-    font-size:17px;
-    font-weight:600;
-    opacity:0.9;
+    background:rgba(255,255,255,0.07);
+    padding:25px;
+    border-radius:15px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.4);
 }
 
 .price {
-    font-size:28px;
+    font-size:24px;
     font-weight:800;
-    margin:14px 0 8px;
+    margin:10px 0;
 }
 
-.positive {
-    color:#00ffb3;
-    font-weight:600;
-}
+.positive { color:#00ffb3; }
+.negative { color:#ff4d6d; }
 
-.negative {
-    color:#ff4d6d;
-    font-weight:600;
-}
-
-.sentiment {
-    margin-top:5px;
-    font-size:13px;
-    opacity:0.65;
-}
-
-footer {
+.fallback {
     text-align:center;
-    padding:40px;
-    font-size:12px;
-    opacity:0.4;
+    margin-top:60px;
+    font-size:18px;
+    opacity:0.7;
 }
-
 </style>
 </head>
 <body>
 
 <div class="header">
     <div class="title">Ojas Macro Intelligence Terminal</div>
-    <div class="subtitle">Institutional Cross-Asset Risk Dashboard</div>
     <div class="time">Live System Time | {{ time }}</div>
-
-    <div class="risk-container">
-        <div class="risk-label">Global Risk Regime Monitor</div>
-        <div class="risk-bar">
-            <div class="risk-fill"></div>
-        </div>
-    </div>
 </div>
 
+{% if data and data|length > 0 %}
 <div class="grid">
     {% for name, item in data.items() %}
     <div class="card">
@@ -155,14 +81,15 @@ footer {
             <div class="negative">{{ item.change }}% ▼</div>
         {% endif %}
 
-        <div class="sentiment">{{ item.sentiment }}</div>
+        <div>{{ item.sentiment }}</div>
     </div>
     {% endfor %}
 </div>
-
-<footer>
-    Ojas Capital Systems • Quantitative Global Macro Infrastructure
-</footer>
+{% else %}
+<div class="fallback">
+    Market data loading... Please refresh in a few seconds.
+</div>
+{% endif %}
 
 </body>
 </html>
