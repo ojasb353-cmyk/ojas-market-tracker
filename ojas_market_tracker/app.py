@@ -52,30 +52,38 @@ def get_data():
                     display_price = current * usd_inr
                     currency_label = "INR"
 
+                # Special conversions
+                if name == "Gold":
+                    # Gold future is per ounce
+                    # 1 ounce = 31.1035 grams
+                    grams_price = (current * usd_inr) / 31.1035
+                    display_price = grams_price * 10   # per 10g
+                    currency_label = "INR per 10g"
+
+                if name == "Silver":
+                    # Silver future is per ounce
+                    # Convert to per kg
+                    grams_price = (current * usd_inr) / 31.1035
+                    display_price = grams_price * 1000   # per kg
+                    currency_label = "INR per kg"
+
                 data[name] = {
                     "price": round(display_price, 2),
-                    "original": round(current, 2),
-                    "currency": currency_label,
                     "change": round(change, 2),
-                    "sentiment": sentiment
+                    "sentiment": sentiment,
+                    "currency": currency_label
                 }
 
         except Exception:
             data[name] = {
                 "price": "N/A",
-                "original": "N/A",
-                "currency": "",
                 "change": 0,
-                "sentiment": "No Data"
+                "sentiment": "No Data",
+                "currency": ""
             }
 
     return data
 
-@app.route("/")
-def home():
-    market_data = get_data()
-    now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
-    return render_template("index.html", data=market_data, time=now)
 
 @app.route("/")
 def home():
