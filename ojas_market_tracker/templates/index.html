@@ -1,53 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ojas Institutional Macro Terminal</title>
+<title>Ojas's Personal Daily Tracker</title>
 <meta http-equiv="refresh" content="60">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<style>
-body{background:#0b1117;color:white;font-family:'Inter',sans-serif;margin:0}
-.header{text-align:center;padding:40px}
-.title{font-size:32px;font-weight:800}
-.time{opacity:0.5;font-size:12px;margin-top:6px}
 
-.section{padding:20px 40px}
-.section-title{
-color:#00c8ff;
-margin-bottom:15px;
-font-weight:600;
-text-transform:uppercase;
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+body{
+background:linear-gradient(180deg,#060b12,#0b141f);
+color:#e6edf3;
+font-family:'Roboto Condensed',sans-serif;
+margin:0
+}
+
+.header{
+text-align:center;
+padding:30px;
+border-bottom:1px solid #1c2a3a
+}
+
+.title{
+font-size:28px;
+letter-spacing:1px;
+font-weight:700;
+text-transform:uppercase
+}
+
+.time{
+opacity:0.6;
 font-size:12px;
-letter-spacing:1px
+margin-top:5px
+}
+
+.summary{
+background:#101c2a;
+padding:15px;
+margin:20px 40px;
+border-left:4px solid #00c8ff;
+font-size:14px
+}
+
+.section{
+padding:10px 40px 25px
+}
+
+.section-title{
+font-size:11px;
+letter-spacing:2px;
+color:#00c8ff;
+margin:20px 0 10px;
+text-transform:uppercase
 }
 
 .grid{
 display:grid;
-grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-gap:15px
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:12px
 }
 
 .card{
-background:#121a22;
-padding:16px;
-border-radius:8px;
-border:1px solid #1f2a36;
-transition:0.3s
+background:#0f1a25;
+padding:15px;
+border:1px solid #1b2a3a;
+border-radius:6px;
+transition:0.2s
 }
 
 .card:hover{
-border-color:#00c8ff;
-transform:translateY(-2px)
+border-color:#00c8ff
 }
 
-.asset{font-size:13px;font-weight:600}
-.price{font-size:16px;margin-top:4px}
+.asset{
+font-size:12px;
+opacity:0.7
+}
+
+.price{
+font-size:18px;
+margin:6px 0
+}
+
 .pos{color:#00ff9c;font-size:13px}
 .neg{color:#ff4d6d;font-size:13px}
 
+.ai{
+font-size:11px;
+opacity:0.6;
+margin-top:6px
+}
+
 .policy{
-background:#101820;
-padding:20px;
-margin:30px;
+margin:30px 40px;
+padding:15px;
+background:#0d1722;
 border-left:3px solid #00c8ff
 }
 </style>
@@ -55,131 +101,32 @@ border-left:3px solid #00c8ff
 <body>
 
 <div class="header">
-<div class="title">Ojas Institutional Macro Terminal</div>
+<div class="title">Ojas's Personal Daily Tracker</div>
 <div class="time">Live | {{ time }}</div>
 </div>
 
-<!-- COMMODITIES -->
+<div class="summary">
+<strong>AI Macro Regime:</strong> {{ summary }}
+</div>
+
 <div class="section">
-<div class="section-title">Commodities</div>
+<div class="section-title">Global Macro Dashboard</div>
 <div class="grid">
-{% for name in ["Crude Oil","Natural Gas","Gold","Silver","Copper","Wheat"] %}
-{% if data.get(name) %}
+{% for name, item in data.items() %}
 <div class="card">
 <div class="asset">{{ name }}</div>
-<div class="price">{{ data[name].price }}</div>
-{% if data[name].change > 0 %}
-<div class="pos">{{ data[name].change }}%</div>
+<div class="price">{{ item.price }}</div>
+{% if item.change > 0 %}
+<div class="pos">{{ item.change }}%</div>
 {% else %}
-<div class="neg">{{ data[name].change }}%</div>
+<div class="neg">{{ item.change }}%</div>
 {% endif %}
+<div class="ai">{{ item.ai }}</div>
 </div>
-{% endif %}
 {% endfor %}
 </div>
 </div>
 
-<!-- FX -->
-<div class="section">
-<div class="section-title">FX (INR Crosses)</div>
-<div class="grid">
-{% for name in ["USD/INR","EUR/INR","AED/INR"] %}
-{% if data.get(name) %}
-<div class="card">
-<div class="asset">{{ name }}</div>
-<div class="price">{{ data[name].price }}</div>
-{% if data[name].change > 0 %}
-<div class="pos">{{ data[name].change }}%</div>
-{% else %}
-<div class="neg">{{ data[name].change }}%</div>
-{% endif %}
-</div>
-{% endif %}
-{% endfor %}
-</div>
-</div>
-
-<!-- GLOBAL EQUITY -->
-<div class="section">
-<div class="section-title">Global Equity Indices</div>
-<div class="grid">
-{% for name in ["S&P 500","Dow Jones","NASDAQ","Shanghai Composite","Hang Seng"] %}
-{% if data.get(name) %}
-<div class="card">
-<div class="asset">{{ name }}</div>
-<div class="price">{{ data[name].price }}</div>
-{% if data[name].change > 0 %}
-<div class="pos">{{ data[name].change }}%</div>
-{% else %}
-<div class="neg">{{ data[name].change }}%</div>
-{% endif %}
-</div>
-{% endif %}
-{% endfor %}
-</div>
-</div>
-
-<!-- INDIA EQUITY -->
-<div class="section">
-<div class="section-title">India Equity</div>
-<div class="grid">
-{% for name in ["NIFTY 50","Sensex"] %}
-{% if data.get(name) %}
-<div class="card">
-<div class="asset">{{ name }}</div>
-<div class="price">{{ data[name].price }}</div>
-{% if data[name].change > 0 %}
-<div class="pos">{{ data[name].change }}%</div>
-{% else %}
-<div class="neg">{{ data[name].change }}%</div>
-{% endif %}
-</div>
-{% endif %}
-{% endfor %}
-</div>
-</div>
-
-<!-- CRYPTO -->
-<div class="section">
-<div class="section-title">Crypto</div>
-<div class="grid">
-{% for name in ["Bitcoin","Ethereum"] %}
-{% if data.get(name) %}
-<div class="card">
-<div class="asset">{{ name }}</div>
-<div class="price">{{ data[name].price }}</div>
-{% if data[name].change > 0 %}
-<div class="pos">{{ data[name].change }}%</div>
-{% else %}
-<div class="neg">{{ data[name].change }}%</div>
-{% endif %}
-</div>
-{% endif %}
-{% endfor %}
-</div>
-</div>
-
-<!-- BONDS -->
-<div class="section">
-<div class="section-title">Bond Yields</div>
-<div class="grid">
-{% for name in ["US 10Y Yield","India 10Y"] %}
-{% if data.get(name) %}
-<div class="card">
-<div class="asset">{{ name }}</div>
-<div class="price">{{ data[name].price }}</div>
-{% if data[name].change > 0 %}
-<div class="pos">{{ data[name].change }}%</div>
-{% else %}
-<div class="neg">{{ data[name].change }}%</div>
-{% endif %}
-</div>
-{% endif %}
-{% endfor %}
-</div>
-</div>
-
-<!-- POLICY -->
 <div class="section">
 <div class="section-title">Policy Rates</div>
 <div class="grid">
@@ -196,11 +143,10 @@ border-left:3px solid #00c8ff
 
 <div class="policy">
 <strong>For Ojas Only:</strong><br>
-• Track USDINR vs US 10Y divergence.<br>
-• Gold vs Real Yield spread.<br>
-• Equity breadth vs VIX regime.<br>
-• Crypto beta to NASDAQ.<br>
-• Watch China indices for EM spillover.
+• Monitor USDINR vs US10Y divergence.<br>
+• Gold vs real yield spread.<br>
+• Equity momentum vs liquidity tightening.<br>
+• Crypto beta vs NASDAQ direction.
 </div>
 
 </body>
