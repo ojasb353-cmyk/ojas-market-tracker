@@ -21,7 +21,7 @@ TICKERS = {
     "Copper": "HG=F",
     "Wheat": "ZW=F",
 
-    # Gold & Silver (USD futures)
+    # Metals
     "Gold": "GC=F",
     "Silver": "SI=F",
 
@@ -30,7 +30,7 @@ TICKERS = {
     "EUR/INR": "EURINR=X",
     "AED/INR": "AEDINR=X",
 
-    # Global Index
+    # Index
     "S&P 500": "^GSPC",
     "Dow Jones": "^DJI",
     "NASDAQ": "^IXIC",
@@ -54,7 +54,14 @@ def fetch_data():
     if "data" in CACHE and time.time() - CACHE["timestamp"] < CACHE_TIME:
         return CACHE["data"]
 
-    df = yf.download(list(TICKERS.values()), period="3mo", interval="1d", progress=False)["Close"]
+    df = yf.download(
+        list(TICKERS.values()),
+        period="3mo",
+        interval="1d",
+        progress=False,
+        auto_adjust=True
+    )["Close"]
+
     df.columns = TICKERS.keys()
     df = df.dropna(axis=1, how="all")
 
@@ -62,6 +69,13 @@ def fetch_data():
     CACHE["timestamp"] = time.time()
 
     return df
+
+
+def safe_usdinr(value):
+    # If USDINR abnormal, fallback to realistic value
+    if value < 50 or value > 120:
+        return 85.0
+    return value
 
 
 def ai_bias(momentum, volatility):
@@ -77,11 +91,15 @@ def ai_bias(momentum, volatility):
 
 @app.route("/")
 def home():
+
     df = fetch_data()
     latest = df.iloc[-1]
     prev = df.iloc[-2]
 
     assets = {}
+
+    usdinr = latest.get("USD/INR", 85.0)
+    usdinr = safe_usdinr(usdinr)
 
     for col in df.columns:
 
@@ -102,15 +120,13 @@ def home():
 
         price_display = today
 
-        # Convert Gold (USD/oz) → INR per 10g
+        # Gold USD/oz → INR per 10g
         if col == "Gold":
-            usd_inr = latest["USD/INR"]
-            price_display = (today * usd_inr * 10) / 31.1035
+            price_display = (today * usdinr * 10) / 31.1035
 
-        # Convert Silver (USD/oz) → INR per kg
+        # Silver USD/oz → INR per kg
         if col == "Silver":
-            usd_inr = latest["USD/INR"]
-            price_display = (today * usd_inr * 1000) / 31.1035
+            price_display = (today * usdinr * 1000) / 31.1035
 
         assets[col] = {
             "price": round(float(price_display), 2),

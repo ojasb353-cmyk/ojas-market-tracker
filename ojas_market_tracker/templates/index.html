@@ -91,17 +91,17 @@ AI Global Regime: <strong>{{ regime }}</strong>
 
 <div class="price">
 {% if name == "Gold" %}
-₹ {{ asset.price }} /10g
+₹ {{ "{:,.2f}".format(asset.price) }} /10g
 {% elif name == "Silver" %}
-₹ {{ asset.price }} /kg
+₹ {{ "{:,.2f}".format(asset.price) }} /kg
 {% elif "INR" in name %}
-₹ {{ asset.price }}
+₹ {{ "{:,.2f}".format(asset.price) }}
 {% elif name in ["Crude Oil","Natural Gas","Copper","Wheat","Bitcoin","Ethereum"] %}
-$ {{ asset.price }}
+$ {{ "{:,.2f}".format(asset.price) }}
 {% elif name == "US 10Y Yield" %}
 {{ asset.price }} %
 {% else %}
-{{ asset.price }}
+{{ "{:,.2f}".format(asset.price) }}
 {% endif %}
 </div>
 
