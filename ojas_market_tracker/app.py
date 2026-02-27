@@ -13,16 +13,24 @@ RBI_REPO = 6.50
 CACHE = {}
 CACHE_TIME = 300
 
+
 TICKERS = {
+    # Commodities (USD)
     "Crude Oil": "CL=F",
     "Natural Gas": "NG=F",
-    "Gold": "GC=F",
-    "Silver": "SI=F",
     "Copper": "HG=F",
     "Wheat": "ZW=F",
+
+    # Gold & Silver (USD futures)
+    "Gold": "GC=F",
+    "Silver": "SI=F",
+
+    # FX
     "USD/INR": "USDINR=X",
     "EUR/INR": "EURINR=X",
     "AED/INR": "AEDINR=X",
+
+    # Global Index
     "S&P 500": "^GSPC",
     "Dow Jones": "^DJI",
     "NASDAQ": "^IXIC",
@@ -30,8 +38,12 @@ TICKERS = {
     "Hang Seng": "^HSI",
     "NIFTY 50": "^NSEI",
     "Sensex": "^BSESN",
+
+    # Crypto
     "Bitcoin": "BTC-USD",
     "Ethereum": "ETH-USD",
+
+    # Yield
     "US 10Y Yield": "^TNX"
 }
 
@@ -56,11 +68,11 @@ def ai_bias(momentum, volatility):
     score = momentum - volatility
 
     if score > 0.02:
-        return "Bullish bias", "▲", "green"
+        return "Bullish", "▲", "green"
     elif score < -0.02:
-        return "Bearish bias", "▼", "red"
+        return "Bearish", "▼", "red"
     else:
-        return "Range-bound", "■", "gray"
+        return "Neutral", "■", "orange"
 
 
 @app.route("/")
@@ -88,8 +100,20 @@ def home():
         confidence = round(abs(momentum) / (volatility + 1e-6) * 100, 1)
         confidence = min(confidence, 95)
 
+        price_display = today
+
+        # Convert Gold (USD/oz) → INR per 10g
+        if col == "Gold":
+            usd_inr = latest["USD/INR"]
+            price_display = (today * usd_inr * 10) / 31.1035
+
+        # Convert Silver (USD/oz) → INR per kg
+        if col == "Silver":
+            usd_inr = latest["USD/INR"]
+            price_display = (today * usd_inr * 1000) / 31.1035
+
         assets[col] = {
-            "price": round(float(today), 2),
+            "price": round(float(price_display), 2),
             "change": round(float(change), 2),
             "momentum": round(momentum * 100, 2),
             "volatility": round(volatility * 100, 2),
@@ -99,7 +123,12 @@ def home():
             "confidence": confidence
         }
 
-    regime_score = np.mean([v["change"] for k, v in assets.items() if "S&P" in k or "NASDAQ" in k or "Dow" in k])
+    regime_score = np.mean([
+        assets[x]["change"]
+        for x in ["S&P 500", "NASDAQ", "Dow Jones"]
+        if x in assets
+    ])
+
     regime = "RISK ON" if regime_score > 0 else "RISK OFF"
 
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M")

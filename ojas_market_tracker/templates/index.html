@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ojas AI Macro Intelligence Board</title>
+<title>OJAS AI MACRO INTELLIGENCE BOARD</title>
 <meta http-equiv="refresh" content="300">
 <style>
 body {
@@ -64,7 +64,7 @@ h1 {
 
 .green { color: #00e676; }
 .red { color: #ff5252; }
-.gray { color: #999; }
+.orange { color: #ff9800; }
 
 .footer {
     margin-top: 40px;
@@ -79,8 +79,7 @@ h1 {
 <div style="text-align:center; font-size:12px;">Live | {{ time }}</div>
 
 <div class="banner">
-AI Global Regime: <strong>{{ regime }}</strong>  
-(Short-term bias derived from momentum vs volatility model)
+AI Global Regime: <strong>{{ regime }}</strong>
 </div>
 
 <div class="section-title">CROSS-ASSET OUTLOOK (2–3 Day AI View)</div>
@@ -89,7 +88,22 @@ AI Global Regime: <strong>{{ regime }}</strong>
 {% for name, asset in assets.items() %}
 <div class="card">
 <div class="asset-name">{{ name }}</div>
-<div class="price">{{ asset.price }}</div>
+
+<div class="price">
+{% if name == "Gold" %}
+₹ {{ asset.price }} /10g
+{% elif name == "Silver" %}
+₹ {{ asset.price }} /kg
+{% elif "INR" in name %}
+₹ {{ asset.price }}
+{% elif name in ["Crude Oil","Natural Gas","Copper","Wheat","Bitcoin","Ethereum"] %}
+$ {{ asset.price }}
+{% elif name == "US 10Y Yield" %}
+{{ asset.price }} %
+{% else %}
+{{ asset.price }}
+{% endif %}
+</div>
 
 <div class="metric {{ asset.color }}">
 {{ asset.arrow }} {{ asset.change }}%
@@ -97,6 +111,7 @@ AI Global Regime: <strong>{{ regime }}</strong>
 
 <div class="metric">5D Momentum: {{ asset.momentum }}%</div>
 <div class="metric">20D Volatility: {{ asset.volatility }}%</div>
+
 <div class="metric {{ asset.color }}">
 AI Bias: {{ asset.bias }} (Confidence {{ asset.confidence }}%)
 </div>
@@ -108,20 +123,16 @@ AI Bias: {{ asset.bias }} (Confidence {{ asset.confidence }}%)
 
 <div class="section-title">POLICY STRUCTURE</div>
 <div class="grid">
-<div class="card">
-Fed Funds Rate: {{ fed }}%
-</div>
-<div class="card">
-RBI Repo Rate: {{ rbi }}%
-</div>
+<div class="card">Fed Funds Rate: {{ fed }}%</div>
+<div class="card">RBI Repo Rate: {{ rbi }}%</div>
 </div>
 
 <div class="footer">
-<strong>AI Interpretation Logic:</strong><br>
-• Momentum > Volatility → Bullish pressure<br>
-• Volatility > Momentum → Risk caution<br>
-• Confidence reflects strength of directional imbalance<br>
-• Model recalculates every 5 minutes
+<strong>AI Logic:</strong><br>
+• Momentum > Volatility → Bullish<br>
+• Volatility > Momentum → Bearish<br>
+• Balanced structure → Neutral (Orange)<br>
+• Confidence reflects strength of imbalance
 </div>
 
 </body>
