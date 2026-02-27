@@ -4,7 +4,6 @@
     <title>Ojas' Personal Market Tracker</title>
     <meta http-equiv="refresh" content="60">
 
-    <!-- Nothing-style tech font -->
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
 
     <style>
@@ -60,12 +59,17 @@
             margin: 10px 0;
         }
 
-        .green { color: #00C805; }     /* Bloomberg green */
-        .red { color: #FF3B30; }       /* Bloomberg red */
-        .orange { color: #FF9500; }    /* Neutral orange */
+        .unit {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .green { color: #00C805; }
+        .red { color: #FF3B30; }
+        .orange { color: #FF9500; }
 
         .ai {
-            margin-top: 10px;
+            margin-top: 8px;
             font-size: 13px;
         }
 
@@ -91,16 +95,14 @@
         <h3>{{ name }}</h3>
 
         <div class="price">{{ item.price }}</div>
+        <div class="unit">{{ item.unit }}</div>
 
         <div class="{{ item.color }}">
-            {{ item.change }} %
+            {{ item.change }}%
         </div>
 
         <div class="section-title">AI SUMMARY</div>
-        <div class="ai {{ item.color }}">{{ item.ai_5d }}</div>
-
-        <div class="section-title">Next 5 Days</div>
-        <div class="ai {{ item.color }}">{{ item.ai_5d }}</div>
+        <div class="ai {{ item.color }}">{{ item.ai_summary }}</div>
 
         <div class="section-title">1 Month Outlook</div>
         <div class="ai {{ item.color }}">{{ item.ai_1m }}</div>

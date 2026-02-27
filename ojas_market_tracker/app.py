@@ -26,7 +26,7 @@ symbols = {
     "Bitcoin": "BTC-USD",
     "Ethereum": "ETH-USD",
 
-    # Risk / Macro
+    # Macro
     "US 10Y Yield": "^TNX",
     "VIX": "^VIX",
     "USD Index (DXY)": "DX-Y.NYB",
@@ -64,19 +64,15 @@ def get_data():
             unit = ""
             display_price = ""
 
-            # ---------------- COMMODITIES ----------------
+            # ----------- COMMODITIES -----------
 
             if name == "Gold":
-                # USD per ounce → INR per 10g
-                price_inr = current * usd_inr
-                price_10g = (price_inr / 31.1035) * 10
+                price_10g = (current / 31.1035) * 10 * usd_inr
                 display_price = f"₹ {price_10g:,.2f}"
                 unit = "per 10g"
 
             elif name == "Silver":
-                # USD per ounce → INR per kg
-                price_inr = current * usd_inr
-                price_kg = (price_inr / 31.1035) * 1000
+                price_kg = (current / 31.1035) * 1000 * usd_inr
                 display_price = f"₹ {price_kg:,.2f}"
                 unit = "per kg"
 
@@ -100,39 +96,36 @@ def get_data():
                 display_price = f"₹ {price_inr:,.2f}"
                 unit = "per bushel"
 
-            # ---------------- INDICES ----------------
+            # ----------- INDICES (NO CURRENCY SIGN) -----------
 
-            elif name in ["NIFTY 50", "Sensex"]:
-                display_price = f"₹ {current:,.2f}"
-                unit = "Index"
-
-            elif name == "Hang Seng":
-                display_price = f"HK$ {current:,.2f}"
-                unit = "Index"
-
-            elif name == "Shanghai Composite":
-                display_price = f"¥ {current:,.2f}"
-                unit = "Index"
-
-            elif name in ["S&P 500", "Dow Jones", "NASDAQ"]:
+            elif name in [
+                "S&P 500",
+                "Dow Jones",
+                "NASDAQ",
+                "Shanghai Composite",
+                "Hang Seng",
+                "NIFTY 50",
+                "Sensex",
+                "USD Index (DXY)"
+            ]:
                 display_price = f"{current:,.2f}"
                 unit = "Index"
 
-            # ---------------- CRYPTO ----------------
+            # ----------- CRYPTO -----------
 
             elif name in ["Bitcoin", "Ethereum"]:
                 display_price = f"$ {current:,.2f}"
                 unit = "USD"
 
-            # ---------------- RATES ----------------
+            # ----------- RATES -----------
 
-            elif name in ["US 10Y Yield", "VIX"]:
+            elif name == "US 10Y Yield":
                 display_price = f"{current:.2f}%"
-                unit = "Percent"
+                unit = "Yield"
 
-            elif name == "USD Index (DXY)":
-                display_price = f"{current:,.2f}"
-                unit = "Index"
+            elif name == "VIX":
+                display_price = f"{current:.2f}"
+                unit = "Volatility Index"
 
             short_ai, color = ai_prediction(change)
 
@@ -140,7 +133,7 @@ def get_data():
                 "price": display_price,
                 "unit": unit,
                 "change": round(change, 2),
-                "ai_5d": short_ai,
+                "ai_summary": short_ai,
                 "ai_1m": short_ai,
                 "color": color
             }
@@ -154,12 +147,10 @@ def get_risk_mode(data):
     try:
         sp = data["S&P 500"]["change"]
         btc = data["Bitcoin"]["change"]
-        gold = data["Gold"]["change"]
-        vix = data["VIX"]["change"]
 
-        if sp > 0 and btc > 0:
+        if sp > 1 and btc > 1:
             return "RISK ON"
-        elif gold > 0 and vix > 0:
+        elif sp < -1 and btc < -1:
             return "RISK OFF"
         else:
             return "NEUTRAL"
