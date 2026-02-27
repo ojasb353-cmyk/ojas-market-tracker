@@ -4,116 +4,65 @@
 <title>OJAS AI MACRO INTELLIGENCE BOARD</title>
 <meta http-equiv="refresh" content="300">
 <style>
-body {
-    background: #050b12;
-    color: #e6edf3;
-    font-family: "Segoe UI", Arial, sans-serif;
-    margin: 0;
-    padding: 25px;
-}
-
-h1 {
-    text-align: center;
-    font-weight: 600;
-    letter-spacing: 2px;
-}
-
-.banner {
-    background: linear-gradient(90deg, #0f1f2e, #122a3d);
-    padding: 12px;
-    margin: 20px 0;
-    border-left: 5px solid #00c8ff;
-}
-
-.section-title {
-    font-size: 13px;
-    color: #00c8ff;
-    margin-top: 30px;
-    margin-bottom: 10px;
-    letter-spacing: 1px;
-}
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 18px;
-}
-
-.card {
-    background: #0e1721;
-    padding: 18px;
-    border-radius: 8px;
-    border: 1px solid #1f2a36;
-}
-
-.asset-name {
-    font-size: 13px;
-    color: #8b949e;
-}
-
-.price {
-    font-size: 22px;
-    margin-top: 6px;
-}
-
-.metric {
-    font-size: 12px;
-    margin-top: 4px;
-    color: #9aa4af;
-}
-
-.green { color: #00e676; }
-.red { color: #ff5252; }
-.orange { color: #ff9800; }
-
-.footer {
-    margin-top: 40px;
-    background: #0e1721;
-    padding: 15px;
-}
+body { background:#050b12; color:#e6edf3; font-family:Arial; padding:25px; }
+h1 { text-align:center; letter-spacing:2px; }
+.banner { background:#102231; padding:12px; margin:20px 0; border-left:4px solid #00c8ff; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px; }
+.card { background:#0e1721; padding:18px; border-radius:8px; border:1px solid #1f2a36; }
+.green{color:#00e676;} .red{color:#ff5252;} .orange{color:#ff9800;}
+.small{font-size:12px;color:#9aa4af;}
 </style>
 </head>
 <body>
 
 <h1>OJAS AI MACRO INTELLIGENCE BOARD</h1>
-<div style="text-align:center; font-size:12px;">Live | {{ time }}</div>
+<div style="text-align:center;font-size:12px;">Live | {{ time }}</div>
 
 <div class="banner">
 AI Global Regime: <strong>{{ regime }}</strong>
 </div>
 
-<div class="section-title">CROSS-ASSET OUTLOOK (2–3 Day AI View)</div>
 <div class="grid">
 
 {% for name, asset in assets.items() %}
 <div class="card">
-<div class="asset-name">{{ name }}</div>
 
-<div class="price">
+<div class="small">{{ name }}</div>
+
+<div style="font-size:22px;margin-top:6px;">
+
 {% if name == "Gold" %}
 ₹ {{ "{:,.2f}".format(asset.price) }} /10g
 {% elif name == "Silver" %}
 ₹ {{ "{:,.2f}".format(asset.price) }} /kg
 {% elif "INR" in name %}
 ₹ {{ "{:,.2f}".format(asset.price) }}
-{% elif name in ["Crude Oil","Natural Gas","Copper","Wheat","Bitcoin","Ethereum"] %}
+{% elif name in ["Crude Oil"] %}
+$ {{ asset.price }} /bbl
+{% elif name == "Natural Gas" %}
+$ {{ asset.price }} /MMBtu
+{% elif name == "Copper" %}
+$ {{ asset.price }} /lb
+{% elif name == "Wheat" %}
+$ {{ asset.price }} /bushel
+{% elif name in ["Bitcoin","Ethereum"] %}
 $ {{ "{:,.2f}".format(asset.price) }}
 {% elif name == "US 10Y Yield" %}
 {{ asset.price }} %
 {% else %}
 {{ "{:,.2f}".format(asset.price) }}
 {% endif %}
+
 </div>
 
-<div class="metric {{ asset.color }}">
+<div class="{{ asset.color }}">
 {{ asset.arrow }} {{ asset.change }}%
 </div>
 
-<div class="metric">5D Momentum: {{ asset.momentum }}%</div>
-<div class="metric">20D Volatility: {{ asset.volatility }}%</div>
-
-<div class="metric {{ asset.color }}">
-AI Bias: {{ asset.bias }} (Confidence {{ asset.confidence }}%)
+<div class="small">5D Mom: {{ asset.momentum }}%</div>
+<div class="small">20D Vol: {{ asset.volatility }}%</div>
+<div class="{{ asset.color }} small">
+AI Bias: {{ asset.bias }} ({{ asset.confidence }}%)
 </div>
 
 </div>
@@ -121,19 +70,8 @@ AI Bias: {{ asset.bias }} (Confidence {{ asset.confidence }}%)
 
 </div>
 
-<div class="section-title">POLICY STRUCTURE</div>
-<div class="grid">
-<div class="card">Fed Funds Rate: {{ fed }}%</div>
-<div class="card">RBI Repo Rate: {{ rbi }}%</div>
-</div>
-
-<div class="footer">
-<strong>AI Logic:</strong><br>
-• Momentum > Volatility → Bullish<br>
-• Volatility > Momentum → Bearish<br>
-• Balanced structure → Neutral (Orange)<br>
-• Confidence reflects strength of imbalance
-</div>
+<br>
+<div class="card">Fed Funds: {{ fed }}% | RBI Repo: {{ rbi }}%</div>
 
 </body>
 </html>

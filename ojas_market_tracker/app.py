@@ -15,22 +15,15 @@ CACHE_TIME = 300
 
 
 TICKERS = {
-    # Commodities (USD)
     "Crude Oil": "CL=F",
     "Natural Gas": "NG=F",
     "Copper": "HG=F",
     "Wheat": "ZW=F",
-
-    # Metals
     "Gold": "GC=F",
     "Silver": "SI=F",
-
-    # FX
     "USD/INR": "USDINR=X",
     "EUR/INR": "EURINR=X",
     "AED/INR": "AEDINR=X",
-
-    # Index
     "S&P 500": "^GSPC",
     "Dow Jones": "^DJI",
     "NASDAQ": "^IXIC",
@@ -38,19 +31,14 @@ TICKERS = {
     "Hang Seng": "^HSI",
     "NIFTY 50": "^NSEI",
     "Sensex": "^BSESN",
-
-    # Crypto
     "Bitcoin": "BTC-USD",
     "Ethereum": "ETH-USD",
-
-    # Yield
     "US 10Y Yield": "^TNX"
 }
 
 
 def fetch_data():
     global CACHE
-
     if "data" in CACHE and time.time() - CACHE["timestamp"] < CACHE_TIME:
         return CACHE["data"]
 
@@ -67,20 +55,17 @@ def fetch_data():
 
     CACHE["data"] = df
     CACHE["timestamp"] = time.time()
-
     return df
 
 
-def safe_usdinr(value):
-    # If USDINR abnormal, fallback to realistic value
-    if value < 50 or value > 120:
+def normalize_usdinr(value):
+    if value < 60 or value > 120:
         return 85.0
     return value
 
 
 def ai_bias(momentum, volatility):
     score = momentum - volatility
-
     if score > 0.02:
         return "Bullish", "▲", "green"
     elif score < -0.02:
@@ -98,8 +83,7 @@ def home():
 
     assets = {}
 
-    usdinr = latest.get("USD/INR", 85.0)
-    usdinr = safe_usdinr(usdinr)
+    usdinr = normalize_usdinr(latest.get("USD/INR", 85))
 
     for col in df.columns:
 
@@ -113,27 +97,29 @@ def home():
         momentum = df[col].pct_change().tail(5).mean()
         volatility = df[col].pct_change().tail(20).std()
 
-        bias_text, arrow, color = ai_bias(momentum, volatility)
+        bias, arrow, color = ai_bias(momentum, volatility)
+        confidence = min(round(abs(momentum)/(volatility+1e-6)*100,1),95)
 
-        confidence = round(abs(momentum) / (volatility + 1e-6) * 100, 1)
-        confidence = min(confidence, 95)
+        price = today
 
-        price_display = today
-
-        # Gold USD/oz → INR per 10g
+        # GOLD → ₹ per 10g
         if col == "Gold":
-            price_display = (today * usdinr * 10) / 31.1035
+            price = (today * usdinr * 10) / 31.1035
 
-        # Silver USD/oz → INR per kg
+        # SILVER → ₹ per kg
         if col == "Silver":
-            price_display = (today * usdinr * 1000) / 31.1035
+            price = (today * usdinr * 1000) / 31.1035
+
+        # US 10Y (^TNX is 10x)
+        if col == "US 10Y Yield":
+            price = today / 10
 
         assets[col] = {
-            "price": round(float(price_display), 2),
+            "price": round(float(price), 2),
             "change": round(float(change), 2),
             "momentum": round(momentum * 100, 2),
             "volatility": round(volatility * 100, 2),
-            "bias": bias_text,
+            "bias": bias,
             "arrow": arrow,
             "color": color,
             "confidence": confidence
