@@ -1,5 +1,6 @@
 from flask import Flask, render_template
 import yfinance as yf
+import pandas as pd
 import datetime
 import time
 
@@ -11,9 +12,8 @@ RBI_REPO = 6.50
 CACHE = {}
 CACHE_TIME = 180
 
-
-ASSETS = {
-    "Crude Oil (WTI)": "CL=F",
+TICKERS = {
+    "Crude Oil": "CL=F",
     "Natural Gas": "NG=F",
     "Copper": "HG=F",
     "Wheat": "ZW=F",
@@ -35,54 +35,45 @@ ASSETS = {
 }
 
 
-def fetch_price(ticker):
+def fetch_data():
+    global CACHE
+
+    if "data" in CACHE and time.time() - CACHE["timestamp"] < CACHE_TIME:
+        return CACHE["data"]
+
     try:
-        data = yf.download(
-            ticker,
+        df = yf.download(
+            list(TICKERS.values()),
             period="5d",
             interval="1d",
+            auto_adjust=True,
             progress=False,
             threads=False
         )
 
-        if data.empty:
-            return None, None
+        if df.empty:
+            return {}
 
-        close = data["Close"]
-        today = float(close.iloc[-1])
-        prev = float(close.iloc[-2]) if len(close) > 1 else today
+        close = df["Close"]
+        close.columns = TICKERS.keys()
 
-        return today, prev
-
-    except Exception:
-        return None, None
-
-
-@app.route("/")
-def home():
-
-    global CACHE
-
-    if "data" in CACHE and time.time() - CACHE["timestamp"] < CACHE_TIME:
-        assets = CACHE["data"]
-    else:
         assets = {}
 
-        for name, ticker in ASSETS.items():
-
-            today, prev = fetch_price(ticker)
-
-            if today is None:
+        for col in close.columns:
+            series = close[col].dropna()
+            if len(series) < 2:
                 continue
 
-            change = ((today - prev) / prev) * 100 if prev else 0
+            today = float(series.iloc[-1])
+            prev = float(series.iloc[-2])
+            change = ((today - prev) / prev) * 100
 
-            if name == "US 10Y Yield":
+            if col == "US 10Y Yield":
                 today = today / 10
                 prev = prev / 10
-                change = ((today - prev) / prev) * 100 if prev else 0
+                change = ((today - prev) / prev) * 100
 
-            assets[name] = {
+            assets[col] = {
                 "price": round(today, 2),
                 "change": round(change, 2)
             }
@@ -90,15 +81,23 @@ def home():
         CACHE["data"] = assets
         CACHE["timestamp"] = time.time()
 
-    try:
-        regime_assets = ["S&P 500", "NASDAQ", "Dow Jones"]
-        regime_score = sum(
-            assets[x]["change"] for x in regime_assets if x in assets
-        ) / max(len(regime_assets), 1)
-
-        regime = "RISK ON" if regime_score > 0 else "RISK OFF"
+        return assets
 
     except Exception:
+        return {}
+
+
+@app.route("/")
+def home():
+
+    assets = fetch_data()
+
+    try:
+        regime_assets = ["S&P 500", "NASDAQ", "Dow Jones"]
+        valid = [assets[x]["change"] for x in regime_assets if x in assets]
+        regime_score = sum(valid) / len(valid) if valid else 0
+        regime = "RISK ON" if regime_score > 0 else "RISK OFF"
+    except:
         regime = "N/A"
 
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
