@@ -1,76 +1,124 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ojas Hedge Fund Terminal</title>
+<title>Ojas's Personal Daily Tracker</title>
 <meta http-equiv="refresh" content="300">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body{background:#0a0f14;color:white;font-family:Arial;margin:0;padding:20px}
-h1{font-size:22px}
-.section{margin-top:25px}
-.card{background:#111a23;padding:15px;border-radius:6px;margin-bottom:10px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px}
-.small{font-size:12px;color:#aaa}
+body {
+    background: #0a0f14;
+    color: #e6edf3;
+    font-family: "Segoe UI", Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.banner {
+    background: #111c26;
+    padding: 12px;
+    margin: 20px 0;
+    border-left: 4px solid #00bcd4;
+}
+
+.section {
+    margin-top: 30px;
+}
+
+.section-title {
+    font-size: 13px;
+    color: #00c8ff;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+}
+
+.card {
+    background: #111a23;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #1f2a36;
+}
+
+.asset-name {
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.price {
+    font-size: 20px;
+    margin-top: 5px;
+}
+
+.change {
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+.green { color: #00e676; }
+.red { color: #ff5252; }
+.gray { color: #888; }
+
+.footer {
+    margin-top: 40px;
+    background: #111c26;
+    padding: 15px;
+}
 </style>
 </head>
 <body>
 
-<h1>Ojas Hedge Fund Terminal</h1>
-<div class="small">Live | {{ time }}</div>
+<h1>OJAS'S PERSONAL DAILY TRACKER</h1>
+<div style="text-align:center; font-size:12px;">Live | {{ time }}</div>
 
-<div class="section">
-<div class="card">
-<strong>Macro Regime:</strong> {{ regime }}<br>
-Yield Curve Slope: {{ slope }}<br>
-Liquidity Score: {{ liquidity }}<br>
-Portfolio Overlay (5d avg return): {{ portfolio }}
-</div>
+<div class="banner">
+AI Macro Regime: <strong>{{ regime }}</strong>
 </div>
 
 <div class="section">
-<h3>Asset Snapshot</h3>
+<div class="section-title">GLOBAL MARKETS</div>
 <div class="grid">
-{% for k,v in data.items() %}
+{% for asset in assets.values() %}
 <div class="card">
-{{ k }}<br>
-{{ v }}
-<canvas id="chart_{{ k }}"></canvas>
+<div class="asset-name">{{ asset.name }}</div>
+<div class="price">{{ asset.price }}</div>
+<div class="change {{ asset.color }}">
+{{ asset.arrow }} {{ asset.change }}%
+</div>
 </div>
 {% endfor %}
 </div>
 </div>
 
 <div class="section">
-<h3>Correlation Matrix</h3>
+<div class="section-title">POLICY RATES</div>
+<div class="grid">
 <div class="card">
-<pre>{{ corr }}</pre>
+<div class="asset-name">Fed Funds Rate</div>
+<div class="price">{{ fed }}%</div>
+</div>
+<div class="card">
+<div class="asset-name">RBI Repo Rate</div>
+<div class="price">{{ rbi }}%</div>
+</div>
 </div>
 </div>
 
-<div class="section">
-<h3>Policy</h3>
-<div class="card">
-Fed Funds: {{ fed }}<br>
-RBI Repo: {{ rbi }}
+<div class="footer">
+<strong>For Ojas Only:</strong><br>
+• Monitor USDINR vs US10Y divergence<br>
+• Gold vs real yield spread<br>
+• Crypto beta vs NASDAQ<br>
+• Equity momentum vs liquidity tightening
 </div>
-</div>
-
-<script>
-{% for k,v in spark.items() %}
-new Chart(document.getElementById("chart_{{ k }}"),{
-type:'line',
-data:{
-labels:[{% for i in range(v|length) %}{{ i }},{% endfor %}],
-datasets:[{
-data:[{% for val in v.values() %}{{ val }},{% endfor %}],
-borderColor:"#00c8ff",
-fill:false
-}]
-},
-options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}
-});
-{% endfor %}
-</script>
 
 </body>
 </html>
