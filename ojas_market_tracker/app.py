@@ -1,6 +1,7 @@
 from flask import Flask, render_template
 import yfinance as yf
 import datetime
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -37,13 +38,20 @@ def get_usd_inr():
     data = usd.history(period="1d")
     return data["Close"].iloc[-1]
 
-def ai_prediction(change):
-    if change > 1:
-        return "▲ Bullish Momentum", "green"
-    elif change < -1:
-        return "▼ Bearish Pressure", "red"
+# -------- MOVING AVERAGE STRATEGY --------
+
+def moving_average_signal(df):
+    df["MA20"] = df["Close"].rolling(window=20).mean()
+    df["MA50"] = df["Close"].rolling(window=50).mean()
+
+    latest = df.iloc[-1]
+
+    if latest["MA20"] > latest["MA50"] and latest["Close"] > latest["MA20"]:
+        return "▲ Bullish Trend", "green"
+    elif latest["MA20"] < latest["MA50"] and latest["Close"] < latest["MA20"]:
+        return "▼ Bearish Trend", "red"
     else:
-        return "► Sideways / Neutral", "orange"
+        return "► Neutral Structure", "orange"
 
 def get_data():
     data = {}
@@ -52,9 +60,9 @@ def get_data():
     for name, ticker in symbols.items():
         try:
             stock = yf.Ticker(ticker)
-            hist = stock.history(period="5d")
+            hist = stock.history(period="90d")  # enough for MA50
 
-            if len(hist) < 2:
+            if len(hist) < 60:
                 continue
 
             current = hist["Close"].iloc[-1]
@@ -96,7 +104,7 @@ def get_data():
                 display_price = f"₹ {price_inr:,.2f}"
                 unit = "per bushel"
 
-            # ----------- INDICES (NO CURRENCY SIGN) -----------
+            # ----------- INDICES -----------
 
             elif name in [
                 "S&P 500",
@@ -127,14 +135,16 @@ def get_data():
                 display_price = f"{current:.2f}"
                 unit = "Volatility Index"
 
-            short_ai, color = ai_prediction(change)
+            # ----------- MOVING AVERAGE SIGNAL -----------
+
+            trend_signal, color = moving_average_signal(hist)
 
             data[name] = {
                 "price": display_price,
                 "unit": unit,
                 "change": round(change, 2),
-                "ai_summary": short_ai,
-                "ai_1m": short_ai,
+                "ai_summary": trend_signal,
+                "ai_1m": trend_signal,
                 "color": color
             }
 
