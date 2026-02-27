@@ -3,7 +3,6 @@
 <head>
     <title>Ojas' Personal Market Tracker</title>
     <meta http-equiv="refresh" content="60">
-
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
 
     <style>
@@ -14,31 +13,10 @@
             color: #ffffff;
         }
 
-        h1 {
-            text-align: center;
-            font-size: 32px;
-            margin-top: 30px;
-        }
-
-        .sub {
-            text-align: center;
-            font-size: 14px;
-            color: #888;
-            margin-bottom: 20px;
-        }
-
-        .risk {
-            text-align: center;
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-
-        .time {
-            text-align: center;
-            font-size: 12px;
-            color: #777;
-            margin-bottom: 20px;
-        }
+        h1 { text-align: center; margin-top: 30px; }
+        .sub { text-align: center; font-size: 14px; color: #888; }
+        .risk { text-align: center; margin: 10px 0; }
+        .time { text-align: center; font-size: 12px; color: #777; margin-bottom: 20px; }
 
         .grid {
             display: grid;
@@ -48,36 +26,21 @@
         }
 
         .card {
-            background: #111111;
+            background: #111;
             padding: 20px;
             border-radius: 12px;
             border: 1px solid #1f1f1f;
         }
 
-        .price {
-            font-size: 20px;
-            margin: 10px 0;
-        }
-
-        .unit {
-            font-size: 12px;
-            color: #777;
-        }
+        .price { font-size: 20px; margin: 8px 0; }
+        .unit { font-size: 12px; color: #777; }
 
         .green { color: #00C805; }
         .red { color: #FF3B30; }
         .orange { color: #FF9500; }
 
-        .ai {
-            margin-top: 8px;
-            font-size: 13px;
-        }
-
-        .section-title {
-            margin-top: 8px;
-            font-size: 12px;
-            color: #888;
-        }
+        .section { margin-top: 10px; font-size: 12px; color: #888; }
+        .value { font-size: 13px; }
 
     </style>
 </head>
@@ -85,30 +48,30 @@
 
 <h1>Ojas' Personal Market Tracker</h1>
 <div class="sub">powered by ai prediction</div>
-
 <div class="risk">Global Risk Mode: {{ risk }}</div>
 <div class="time">Live Market Bulletin | {{ time }}</div>
 
 <div class="grid">
-    {% for name, item in data.items() %}
+{% for name, item in data.items() %}
     <div class="card">
         <h3>{{ name }}</h3>
 
         <div class="price">{{ item.price }}</div>
         <div class="unit">{{ item.unit }}</div>
 
-        <div class="{{ item.color }}">
+        <div class="{{ item.trend_color }}">
             {{ item.change }}%
         </div>
 
-        <div class="section-title">AI SUMMARY</div>
-        <div class="ai {{ item.color }}">{{ item.ai_summary }}</div>
+        <div class="section">1 Month Trend</div>
+        <div class="value {{ item.trend_color }}">{{ item.trend }}</div>
 
-        <div class="section-title">1 Month Outlook</div>
-        <div class="ai {{ item.color }}">{{ item.ai_1m }}</div>
-
+        <div class="section">Volatility (30D)</div>
+        <div class="value {{ item.vol_color }}">
+            {{ item.volatility }} — {{ item.vol_label }}
+        </div>
     </div>
-    {% endfor %}
+{% endfor %}
 </div>
 
 </body>

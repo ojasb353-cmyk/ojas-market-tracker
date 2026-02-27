@@ -2,6 +2,7 @@ from flask import Flask, render_template
 import yfinance as yf
 import datetime
 import pandas as pd
+import numpy as np
 
 app = Flask(__name__)
 
@@ -38,12 +39,11 @@ def get_usd_inr():
     data = usd.history(period="1d")
     return data["Close"].iloc[-1]
 
-# -------- MOVING AVERAGE STRATEGY --------
+# -------- MOVING AVERAGE TREND --------
 
 def moving_average_signal(df):
     df["MA20"] = df["Close"].rolling(window=20).mean()
     df["MA50"] = df["Close"].rolling(window=50).mean()
-
     latest = df.iloc[-1]
 
     if latest["MA20"] > latest["MA50"] and latest["Close"] > latest["MA20"]:
@@ -53,6 +53,21 @@ def moving_average_signal(df):
     else:
         return "► Neutral Structure", "orange"
 
+# -------- VOLATILITY CALCULATION --------
+
+def calculate_volatility(df):
+    df["Returns"] = df["Close"].pct_change()
+    vol = df["Returns"].rolling(window=30).std().iloc[-1] * np.sqrt(252)
+
+    vol_percent = vol * 100
+
+    if vol_percent < 15:
+        return f"{vol_percent:.2f}%", "green", "Low Volatility"
+    elif vol_percent < 30:
+        return f"{vol_percent:.2f}%", "orange", "Moderate Volatility"
+    else:
+        return f"{vol_percent:.2f}%", "red", "High Volatility"
+
 def get_data():
     data = {}
     usd_inr = get_usd_inr()
@@ -60,7 +75,7 @@ def get_data():
     for name, ticker in symbols.items():
         try:
             stock = yf.Ticker(ticker)
-            hist = stock.history(period="90d")  # enough for MA50
+            hist = stock.history(period="120d")
 
             if len(hist) < 60:
                 continue
@@ -72,7 +87,7 @@ def get_data():
             unit = ""
             display_price = ""
 
-            # ----------- COMMODITIES -----------
+            # -------- COMMODITIES --------
 
             if name == "Gold":
                 price_10g = (current / 31.1035) * 10 * usd_inr
@@ -85,47 +100,38 @@ def get_data():
                 unit = "per kg"
 
             elif name == "Crude Oil":
-                price_inr = current * usd_inr
-                display_price = f"₹ {price_inr:,.2f}"
+                display_price = f"₹ {current * usd_inr:,.2f}"
                 unit = "per barrel"
 
             elif name == "Natural Gas":
-                price_inr = current * usd_inr
-                display_price = f"₹ {price_inr:,.2f}"
+                display_price = f"₹ {current * usd_inr:,.2f}"
                 unit = "per MMBtu"
 
             elif name == "Copper":
-                price_inr = current * usd_inr
-                display_price = f"₹ {price_inr:,.2f}"
+                display_price = f"₹ {current * usd_inr:,.2f}"
                 unit = "per pound"
 
             elif name == "Wheat":
-                price_inr = current * usd_inr
-                display_price = f"₹ {price_inr:,.2f}"
+                display_price = f"₹ {current * usd_inr:,.2f}"
                 unit = "per bushel"
 
-            # ----------- INDICES -----------
+            # -------- INDICES --------
 
             elif name in [
-                "S&P 500",
-                "Dow Jones",
-                "NASDAQ",
-                "Shanghai Composite",
-                "Hang Seng",
-                "NIFTY 50",
-                "Sensex",
-                "USD Index (DXY)"
+                "S&P 500", "Dow Jones", "NASDAQ",
+                "Shanghai Composite", "Hang Seng",
+                "NIFTY 50", "Sensex", "USD Index (DXY)"
             ]:
                 display_price = f"{current:,.2f}"
                 unit = "Index"
 
-            # ----------- CRYPTO -----------
+            # -------- CRYPTO --------
 
             elif name in ["Bitcoin", "Ethereum"]:
                 display_price = f"$ {current:,.2f}"
                 unit = "USD"
 
-            # ----------- RATES -----------
+            # -------- RATES --------
 
             elif name == "US 10Y Yield":
                 display_price = f"{current:.2f}%"
@@ -135,17 +141,20 @@ def get_data():
                 display_price = f"{current:.2f}"
                 unit = "Volatility Index"
 
-            # ----------- MOVING AVERAGE SIGNAL -----------
+            # -------- SIGNALS --------
 
-            trend_signal, color = moving_average_signal(hist)
+            trend_signal, trend_color = moving_average_signal(hist)
+            vol_value, vol_color, vol_label = calculate_volatility(hist)
 
             data[name] = {
                 "price": display_price,
                 "unit": unit,
                 "change": round(change, 2),
-                "ai_summary": trend_signal,
-                "ai_1m": trend_signal,
-                "color": color
+                "trend": trend_signal,
+                "trend_color": trend_color,
+                "volatility": vol_value,
+                "vol_color": vol_color,
+                "vol_label": vol_label
             }
 
         except:
