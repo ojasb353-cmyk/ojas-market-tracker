@@ -1,153 +1,76 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ojas's Personal Daily Tracker</title>
-<meta http-equiv="refresh" content="60">
-
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
-
+<title>Ojas Hedge Fund Terminal</title>
+<meta http-equiv="refresh" content="300">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body{
-background:linear-gradient(180deg,#060b12,#0b141f);
-color:#e6edf3;
-font-family:'Roboto Condensed',sans-serif;
-margin:0
-}
-
-.header{
-text-align:center;
-padding:30px;
-border-bottom:1px solid #1c2a3a
-}
-
-.title{
-font-size:28px;
-letter-spacing:1px;
-font-weight:700;
-text-transform:uppercase
-}
-
-.time{
-opacity:0.6;
-font-size:12px;
-margin-top:5px
-}
-
-.summary{
-background:#101c2a;
-padding:15px;
-margin:20px 40px;
-border-left:4px solid #00c8ff;
-font-size:14px
-}
-
-.section{
-padding:10px 40px 25px
-}
-
-.section-title{
-font-size:11px;
-letter-spacing:2px;
-color:#00c8ff;
-margin:20px 0 10px;
-text-transform:uppercase
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-gap:12px
-}
-
-.card{
-background:#0f1a25;
-padding:15px;
-border:1px solid #1b2a3a;
-border-radius:6px;
-transition:0.2s
-}
-
-.card:hover{
-border-color:#00c8ff
-}
-
-.asset{
-font-size:12px;
-opacity:0.7
-}
-
-.price{
-font-size:18px;
-margin:6px 0
-}
-
-.pos{color:#00ff9c;font-size:13px}
-.neg{color:#ff4d6d;font-size:13px}
-
-.ai{
-font-size:11px;
-opacity:0.6;
-margin-top:6px
-}
-
-.policy{
-margin:30px 40px;
-padding:15px;
-background:#0d1722;
-border-left:3px solid #00c8ff
-}
+body{background:#0a0f14;color:white;font-family:Arial;margin:0;padding:20px}
+h1{font-size:22px}
+.section{margin-top:25px}
+.card{background:#111a23;padding:15px;border-radius:6px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px}
+.small{font-size:12px;color:#aaa}
 </style>
 </head>
 <body>
 
-<div class="header">
-<div class="title">Ojas's Personal Daily Tracker</div>
-<div class="time">Live | {{ time }}</div>
-</div>
+<h1>Ojas Hedge Fund Terminal</h1>
+<div class="small">Live | {{ time }}</div>
 
-<div class="summary">
-<strong>AI Macro Regime:</strong> {{ summary }}
+<div class="section">
+<div class="card">
+<strong>Macro Regime:</strong> {{ regime }}<br>
+Yield Curve Slope: {{ slope }}<br>
+Liquidity Score: {{ liquidity }}<br>
+Portfolio Overlay (5d avg return): {{ portfolio }}
+</div>
 </div>
 
 <div class="section">
-<div class="section-title">Global Macro Dashboard</div>
+<h3>Asset Snapshot</h3>
 <div class="grid">
-{% for name, item in data.items() %}
+{% for k,v in data.items() %}
 <div class="card">
-<div class="asset">{{ name }}</div>
-<div class="price">{{ item.price }}</div>
-{% if item.change > 0 %}
-<div class="pos">{{ item.change }}%</div>
-{% else %}
-<div class="neg">{{ item.change }}%</div>
-{% endif %}
-<div class="ai">{{ item.ai }}</div>
+{{ k }}<br>
+{{ v }}
+<canvas id="chart_{{ k }}"></canvas>
 </div>
 {% endfor %}
 </div>
 </div>
 
 <div class="section">
-<div class="section-title">Policy Rates</div>
-<div class="grid">
+<h3>Correlation Matrix</h3>
 <div class="card">
-<div class="asset">Fed Funds Rate</div>
-<div class="price">{{ fed }}%</div>
-</div>
-<div class="card">
-<div class="asset">RBI Repo Rate</div>
-<div class="price">{{ rbi }}%</div>
-</div>
+<pre>{{ corr }}</pre>
 </div>
 </div>
 
-<div class="policy">
-<strong>For Ojas Only:</strong><br>
-• Monitor USDINR vs US10Y divergence.<br>
-• Gold vs real yield spread.<br>
-• Equity momentum vs liquidity tightening.<br>
-• Crypto beta vs NASDAQ direction.
+<div class="section">
+<h3>Policy</h3>
+<div class="card">
+Fed Funds: {{ fed }}<br>
+RBI Repo: {{ rbi }}
 </div>
+</div>
+
+<script>
+{% for k,v in spark.items() %}
+new Chart(document.getElementById("chart_{{ k }}"),{
+type:'line',
+data:{
+labels:[{% for i in range(v|length) %}{{ i }},{% endfor %}],
+datasets:[{
+data:[{% for val in v.values() %}{{ val }},{% endfor %}],
+borderColor:"#00c8ff",
+fill:false
+}]
+},
+options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}
+});
+{% endfor %}
+</script>
 
 </body>
 </html>

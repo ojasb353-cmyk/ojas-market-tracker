@@ -1,120 +1,114 @@
 from flask import Flask, render_template
 import yfinance as yf
+import pandas as pd
+import numpy as np
 import datetime
+import time
 
 app = Flask(__name__)
 
 FED_FUNDS = 5.50
 RBI_REPO = 6.50
 
+CACHE = {}
+CACHE_TIME = 300  # 5 minutes
+
+
 tickers = {
-    "Crude Oil": "CL=F",
-    "Natural Gas": "NG=F",
-    "Gold": "GC=F",
-    "Silver": "SI=F",
-    "Copper": "HG=F",
-    "Wheat": "ZW=F",
-
-    "USD/INR": "USDINR=X",
-    "EUR/INR": "EURINR=X",
-    "AED/INR": "AEDINR=X",
-
-    "S&P 500": "^GSPC",
-    "Dow Jones": "^DJI",
+    "SPX": "^GSPC",
     "NASDAQ": "^IXIC",
-    "Shanghai Composite": "000001.SS",
-    "Hang Seng": "^HSI",
-
-    "NIFTY 50": "^NSEI",
-    "Sensex": "^BSESN",
-
-    "Bitcoin": "BTC-USD",
-    "Ethereum": "ETH-USD",
-
-    "US 10Y Yield": "^TNX"
+    "DOW": "^DJI",
+    "VIX": "^VIX",
+    "US10Y": "^TNX",
+    "US2Y": "^IRX",
+    "GOLD": "GC=F",
+    "OIL": "CL=F",
+    "USDINR": "USDINR=X",
+    "BTC": "BTC-USD"
 }
 
-def safe_fetch(symbol):
-    try:
-        ticker = yf.Ticker(symbol)
-        hist = ticker.history(period="2d")
-        if len(hist) < 2:
-            return None, 0
-        current = float(hist["Close"].iloc[-1])
-        previous = float(hist["Close"].iloc[-2])
-        change = ((current - previous) / previous) * 100
-        return current, round(change, 2)
-    except:
-        return None, 0
+
+def fetch_data():
+    global CACHE
+
+    if "data" in CACHE and time.time() - CACHE["timestamp"] < CACHE_TIME:
+        return CACHE["data"]
+
+    df = yf.download(list(tickers.values()), period="3mo", interval="1d")["Close"]
+    df.columns = tickers.keys()
+
+    CACHE["data"] = df
+    CACHE["timestamp"] = time.time()
+
+    return df
 
 
-def ai_comment(change):
-    if change > 1:
-        return "Strong upside momentum."
-    elif change > 0:
-        return "Mild positive bias."
-    elif change < -1:
-        return "Heavy downside pressure."
-    elif change < 0:
-        return "Soft negative drift."
-    return "Flat session."
+def compute_regime(df):
+
+    risk_assets = ["SPX", "NASDAQ", "BTC"]
+    safe_assets = ["GOLD", "US10Y"]
+
+    risk_score = df[risk_assets].pct_change().tail(5).mean().mean()
+    safe_score = df[safe_assets].pct_change().tail(5).mean().mean()
+
+    if risk_score > 0 and safe_score < 0:
+        return "RISK ON"
+    elif risk_score < 0 and safe_score > 0:
+        return "RISK OFF"
+    else:
+        return "MIXED"
+
+
+def yield_curve_slope(df):
+    return round(df["US10Y"].iloc[-1] - df["US2Y"].iloc[-1], 2)
+
+
+def liquidity_proxy(df):
+    spx = df["SPX"].pct_change().tail(10).mean()
+    vix = df["VIX"].pct_change().tail(10).mean()
+    return round(spx - vix, 4)
+
+
+def correlation_matrix(df):
+    returns = df.pct_change().dropna()
+    corr = returns.corr().round(2)
+    return corr.to_dict()
+
+
+def portfolio_overlay(df):
+    weights = {"SPX":0.4, "NASDAQ":0.3, "GOLD":0.2, "BTC":0.1}
+    returns = df.pct_change().dropna()
+    portfolio_return = sum(weights[k] * returns[k] for k in weights)
+    return round(portfolio_return.tail(5).mean(), 4)
 
 
 @app.route("/")
 def home():
 
-    data = {}
+    df = fetch_data()
 
-    # Fetch USDINR first for conversion
-    usd_price, _ = safe_fetch("USDINR=X")
-    usd_inr = usd_price if usd_price else 83
+    regime = compute_regime(df)
+    slope = yield_curve_slope(df)
+    liquidity = liquidity_proxy(df)
+    corr = correlation_matrix(df)
+    portfolio = portfolio_overlay(df)
 
-    for name, symbol in tickers.items():
+    latest = df.iloc[-1].to_dict()
 
-        price, change = safe_fetch(symbol)
-
-        if price is None:
-            continue
-
-        # Formatting
-        if name == "Crude Oil":
-            display = f"$ {price:,.2f}/bbl"
-
-        elif name == "Natural Gas":
-            display = f"$ {price:,.2f}"
-
-        elif name == "Gold":
-            inr = price * usd_inr
-            display = f"₹ {(inr/31.1035)*10:,.2f}/10g"
-
-        elif name == "Silver":
-            inr = price * usd_inr
-            display = f"₹ {(inr/31.1035)*1000:,.2f}/kg"
-
-        elif name in ["Copper", "Wheat", "Bitcoin", "Ethereum"]:
-            display = f"$ {price:,.2f}"
-
-        elif "Yield" in name:
-            display = f"{price:.2f}%"
-
-        else:
-            display = f"{price:,.2f}"
-
-        data[name] = {
-            "price": display,
-            "change": change,
-            "ai": ai_comment(change)
-        }
-
-    summary = "Macro regime mixed. Monitor bond-equity divergence."
+    spark = df.tail(30).pct_change().cumsum().round(3).to_dict()
 
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M")
 
     return render_template(
         "index.html",
-        data=data,
+        data=latest,
+        regime=regime,
+        slope=slope,
+        liquidity=liquidity,
+        corr=corr,
+        portfolio=portfolio,
+        spark=spark,
         fed=FED_FUNDS,
         rbi=RBI_REPO,
-        summary=summary,
         time=now
     )
