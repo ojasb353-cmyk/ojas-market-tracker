@@ -11,8 +11,7 @@ FED_FUNDS = 5.50
 RBI_REPO = 6.50
 
 CACHE = {}
-CACHE_TIME = 300  # 5 minutes
-
+CACHE_TIME = 300
 
 TICKERS = {
     "Crude Oil": "CL=F",
@@ -23,7 +22,6 @@ TICKERS = {
     "Wheat": "ZW=F",
     "USD/INR": "USDINR=X",
     "EUR/INR": "EURINR=X",
-    "AED/INR": "AEDINR=X",
     "S&P 500": "^GSPC",
     "Dow Jones": "^DJI",
     "NASDAQ": "^IXIC",
@@ -34,7 +32,7 @@ TICKERS = {
     "Bitcoin": "BTC-USD",
     "Ethereum": "ETH-USD",
     "US 10Y Yield": "^TNX",
-    "India 10Y": "IN10Y-BSE"
+    "VIX": "^VIX"
 }
 
 
@@ -44,8 +42,10 @@ def fetch_data():
     if "data" in CACHE and time.time() - CACHE["timestamp"] < CACHE_TIME:
         return CACHE["data"]
 
-    df = yf.download(list(TICKERS.values()), period="5d", interval="1d")["Close"]
+    df = yf.download(list(TICKERS.values()), period="5d", interval="1d", progress=False)["Close"]
     df.columns = TICKERS.keys()
+
+    df = df.dropna(axis=1, how="all")
 
     CACHE["data"] = df
     CACHE["timestamp"] = time.time()
@@ -54,6 +54,8 @@ def fetch_data():
 
 
 def format_asset(name, today, yesterday):
+    if pd.isna(today) or pd.isna(yesterday):
+        return None
 
     change = today - yesterday
     pct = (change / yesterday) * 100 if yesterday != 0 else 0
@@ -63,26 +65,27 @@ def format_asset(name, today, yesterday):
 
     return {
         "name": name,
-        "price": round(today, 2),
-        "change": round(pct, 2),
+        "price": round(float(today), 2),
+        "change": round(float(pct), 2),
         "arrow": arrow,
         "color": color
     }
 
 
-def compute_regime(data):
+def compute_regime(assets):
+    eq = []
+    for index in ["S&P 500", "NASDAQ", "Dow Jones"]:
+        if index in assets:
+            eq.append(assets[index]["change"])
 
-    eq = np.mean([
-        data["S&P 500"]["change"],
-        data["NASDAQ"]["change"],
-        data["Dow Jones"]["change"]
-    ])
+    if not eq:
+        return "UNKNOWN"
 
-    vix_proxy = -data["US 10Y Yield"]["change"]
+    avg = np.mean(eq)
 
-    if eq > 0 and vix_proxy > 0:
+    if avg > 0.3:
         return "RISK ON"
-    elif eq < 0:
+    elif avg < -0.3:
         return "RISK OFF"
     else:
         return "MIXED"
@@ -90,7 +93,6 @@ def compute_regime(data):
 
 @app.route("/")
 def home():
-
     df = fetch_data()
 
     latest = df.iloc[-1]
@@ -99,7 +101,9 @@ def home():
     assets = {}
 
     for col in df.columns:
-        assets[col] = format_asset(col, latest[col], previous[col])
+        formatted = format_asset(col, latest[col], previous[col])
+        if formatted:
+            assets[col] = formatted
 
     regime = compute_regime(assets)
 
