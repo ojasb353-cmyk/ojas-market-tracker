@@ -1,50 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>OJAS RAW MACRO TERMINAL</title>
-<meta http-equiv="refresh" content="120">
-<style>
-body { background:#060c14; color:#e6edf3; font-family:Arial; padding:25px; }
-h1 { text-align:center; letter-spacing:2px; }
-.banner { background:#102231; padding:12px; margin:20px 0; border-left:4px solid #00c8ff; }
-.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px; }
-.card { background:#0e1721; padding:18px; border-radius:8px; border:1px solid #1f2a36; }
-.green{color:#00e676;} .red{color:#ff5252;}
-.small{font-size:12px;color:#9aa4af;}
-</style>
+    <title>Ojas Global Macro Dashboard</title>
+    <meta http-equiv="refresh" content="60">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: white;
+        }
+
+        h1 {
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .risk {
+            text-align: center;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .time {
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .price {
+            font-size: 22px;
+            margin: 10px 0;
+        }
+
+        .positive { color: #00ff9c; }
+        .negative { color: #ff4d4d; }
+
+    </style>
 </head>
 <body>
 
-<h1>OJAS RAW MACRO TERMINAL</h1>
-<div style="text-align:center;font-size:12px;">Live | {{ time }}</div>
-
-<div class="banner">
-AI Regime: <strong>{{ regime }}</strong>
-</div>
+<h1>Ojas Global Macro Dashboard</h1>
+<div class="risk">{{ risk }}</div>
+<div class="time">Live Market Bulletin | {{ time }}</div>
 
 <div class="grid">
+    {% for name, item in data.items() %}
+    <div class="card">
+        <h3>{{ name }}</h3>
+        <div class="price">{{ item.price }}</div>
 
-{% for name, asset in assets.items() %}
-<div class="card">
+        {% if item.change > 0 %}
+            <div class="positive">{{ item.change }} %</div>
+        {% else %}
+            <div class="negative">{{ item.change }} %</div>
+        {% endif %}
 
-<div class="small">{{ name }}</div>
-
-<div style="font-size:22px;margin-top:6px;">
-{{ asset.price }}
-</div>
-
-<div class="{{ 'green' if asset.change > 0 else 'red' }}">
-{{ '▲' if asset.change > 0 else '▼' }} {{ asset.change }}%
-</div>
-
-</div>
-{% endfor %}
-
-</div>
-
-<br>
-<div class="card">
-Fed Funds: {{ fed }}% | RBI Repo: {{ rbi }}%
+        <div>{{ item.sentiment }}</div>
+    </div>
+    {% endfor %}
 </div>
 
 </body>

@@ -1,26 +1,24 @@
 from flask import Flask, render_template
 import yfinance as yf
+import pandas as pd
 import datetime
-import time
 
 app = Flask(__name__)
 
-FED_FUNDS = 5.50
-RBI_REPO = 6.50
+# -------------------------------
+# SYMBOLS (Native Currency)
+# -------------------------------
 
-CACHE = {}
-CACHE_TIME = 180
-
-ASSETS = {
-    "Crude Oil (WTI)": "CL=F",
+symbols = {
+    # Commodities (convert to INR)
+    "Crude Oil": "CL=F",
     "Natural Gas": "NG=F",
-    "Copper": "HG=F",
-    "Wheat": "ZW=F",
     "Gold": "GC=F",
     "Silver": "SI=F",
-    "USD/INR": "USDINR=X",
-    "EUR/INR": "EURINR=X",
-    "AED/INR": "AEDINR=X",
+    "Copper": "HG=F",
+    "Wheat": "ZW=F",
+
+    # Equity Indices (native currency)
     "S&P 500": "^GSPC",
     "Dow Jones": "^DJI",
     "NASDAQ": "^IXIC",
@@ -28,82 +26,127 @@ ASSETS = {
     "Hang Seng": "^HSI",
     "NIFTY 50": "^NSEI",
     "Sensex": "^BSESN",
+
+    # Crypto
     "Bitcoin": "BTC-USD",
     "Ethereum": "ETH-USD",
-    "US 10Y Yield": "^TNX"
+
+    # Rates & Risk
+    "US 10Y Yield": "^TNX",
+    "VIX": "^VIX",
+    "USD Index (DXY)": "DX-Y.NYB",
 }
 
+# -------------------------------
+# Helper Functions
+# -------------------------------
 
-def fetch_all():
-    global CACHE
+def get_usd_inr():
+    usd = yf.Ticker("USDINR=X")
+    data = usd.history(period="1d")
+    return data["Close"].iloc[-1]
 
-    if "data" in CACHE and time.time() - CACHE["timestamp"] < CACHE_TIME:
-        return CACHE["data"]
+def format_currency(value, currency):
+    if currency == "INR":
+        return f"₹ {value:,.2f}"
+    elif currency == "USD":
+        return f"$ {value:,.2f}"
+    elif currency == "HKD":
+        return f"HK$ {value:,.2f}"
+    elif currency == "CNY":
+        return f"¥ {value:,.2f}"
+    else:
+        return f"{value:,.2f}"
 
-    data = yf.download(
-        list(ASSETS.values()),
-        period="5d",
-        interval="1d",
-        group_by="ticker",
-        auto_adjust=False,
-        progress=False,
-        threads=False
-    )
+# -------------------------------
+# Core Data Function
+# -------------------------------
 
-    results = {}
+def get_data():
+    data = {}
+    usd_inr = get_usd_inr()
 
-    for name, ticker in ASSETS.items():
+    for name, ticker in symbols.items():
         try:
-            df = data[ticker]
-            close = df["Close"].dropna()
+            stock = yf.Ticker(ticker)
+            hist = stock.history(period="2d")
 
-            if len(close) < 2:
+            if len(hist) < 2:
                 continue
 
-            today = float(close.iloc[-1])
-            prev = float(close.iloc[-2])
+            current = hist["Close"].iloc[-1]
+            previous = hist["Close"].iloc[-2]
+            change = ((current - previous) / previous) * 100
+            sentiment = "Bullish 📈" if change > 0 else "Bearish 📉"
 
-            if name == "US 10Y Yield":
-                today = today / 10
-                prev = prev / 10
+            currency = "USD"
 
-            change = ((today - prev) / prev) * 100
+            # Native currency adjustments
+            if name in ["NIFTY 50", "Sensex"]:
+                currency = "INR"
 
-            results[name] = {
-                "price": round(today, 2),
-                "change": round(change, 2)
+            elif name == "Hang Seng":
+                currency = "HKD"
+
+            elif name == "Shanghai Composite":
+                currency = "CNY"
+
+            elif name in ["US 10Y Yield", "VIX"]:
+                currency = "%"
+
+            # Convert commodities to INR
+            if name in ["Crude Oil", "Natural Gas", "Gold", "Silver", "Copper", "Wheat"]:
+                current = current * usd_inr
+                currency = "INR"
+
+            # Gold per 10g
+            if name == "Gold":
+                current = (current / 31.1035) * 10
+
+            # Silver per kg
+            if name == "Silver":
+                current = (current / 31.1035) * 1000
+
+            data[name] = {
+                "price": format_currency(current, currency) if currency != "%" else f"{current:.2f}%",
+                "change": round(change, 2),
+                "sentiment": sentiment,
+                "currency": currency
             }
 
         except Exception:
             continue
 
-    CACHE["data"] = results
-    CACHE["timestamp"] = time.time()
+    return data
 
-    return results
+
+# -------------------------------
+# Risk Mode Logic
+# -------------------------------
+
+def get_risk_mode(data):
+    try:
+        sp = data["S&P 500"]["change"]
+        btc = data["Bitcoin"]["change"]
+        gold = data["Gold"]["change"]
+        vix = data["VIX"]["change"]
+
+        if sp > 0 and btc > 0:
+            return "RISK ON 🟢"
+        elif gold > 0 and vix > 0:
+            return "RISK OFF 🔴"
+        else:
+            return "NEUTRAL 🟡"
+    except:
+        return "NEUTRAL 🟡"
 
 
 @app.route("/")
 def home():
-
-    assets = fetch_all()
-
-    regime_list = ["S&P 500", "NASDAQ", "Dow Jones"]
-    valid = [assets[x]["change"] for x in regime_list if x in assets]
-
-    regime = "RISK ON" if sum(valid)/len(valid) > 0 else "RISK OFF"
-
+    market_data = get_data()
+    risk_mode = get_risk_mode(market_data)
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
-
-    return render_template(
-        "index.html",
-        assets=assets,
-        regime=regime,
-        fed=FED_FUNDS,
-        rbi=RBI_REPO,
-        time=now
-    )
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    return render_template("index.html",
+                           data=market_data,
+                           time=now,
+                           risk=risk_mode)
