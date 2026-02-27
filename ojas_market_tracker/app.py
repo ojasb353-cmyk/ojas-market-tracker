@@ -9,17 +9,17 @@ FED_FUNDS = 5.50
 RBI_REPO = 6.50
 
 CACHE = {}
-CACHE_TIME = 120
+CACHE_TIME = 180
 
 
 ASSETS = {
-    "Crude Oil (WTI)": "CL=F",          # USD per barrel
-    "Natural Gas": "NG=F",              # USD per MMBtu
-    "Copper": "HG=F",                   # USD per lb
-    "Wheat": "ZW=F",                    # USD per bushel
-    "Gold": "GC=F",                     # USD per oz
-    "Silver": "SI=F",                   # USD per oz
-    "USD/INR": "USDINR=X",              # INR
+    "Crude Oil (WTI)": "CL=F",
+    "Natural Gas": "NG=F",
+    "Copper": "HG=F",
+    "Wheat": "ZW=F",
+    "Gold": "GC=F",
+    "Silver": "SI=F",
+    "USD/INR": "USDINR=X",
     "EUR/INR": "EURINR=X",
     "AED/INR": "AEDINR=X",
     "S&P 500": "^GSPC",
@@ -29,20 +29,33 @@ ASSETS = {
     "Hang Seng": "^HSI",
     "NIFTY 50": "^NSEI",
     "Sensex": "^BSESN",
-    "Bitcoin": "BTC-USD",               # USD
-    "Ethereum": "ETH-USD",              # USD
-    "US 10Y Yield": "^TNX"              # ÷10
+    "Bitcoin": "BTC-USD",
+    "Ethereum": "ETH-USD",
+    "US 10Y Yield": "^TNX"
 }
 
 
-def fetch_asset(ticker):
-    data = yf.download(ticker, period="5d", interval="1d", progress=False)
-    if data.empty:
+def fetch_price(ticker):
+    try:
+        data = yf.download(
+            ticker,
+            period="5d",
+            interval="1d",
+            progress=False,
+            threads=False
+        )
+
+        if data.empty:
+            return None, None
+
+        close = data["Close"]
+        today = float(close.iloc[-1])
+        prev = float(close.iloc[-2]) if len(close) > 1 else today
+
+        return today, prev
+
+    except Exception:
         return None, None
-    close = data["Close"]
-    today = close.iloc[-1]
-    prev = close.iloc[-2] if len(close) > 1 else close.iloc[-1]
-    return today, prev
 
 
 @app.route("/")
@@ -56,33 +69,37 @@ def home():
         assets = {}
 
         for name, ticker in ASSETS.items():
-            today, prev = fetch_asset(ticker)
+
+            today, prev = fetch_price(ticker)
 
             if today is None:
                 continue
 
             change = ((today - prev) / prev) * 100 if prev else 0
 
-            # Fix US10Y scaling
             if name == "US 10Y Yield":
                 today = today / 10
                 prev = prev / 10
                 change = ((today - prev) / prev) * 100 if prev else 0
 
             assets[name] = {
-                "price": round(float(today), 2),
-                "change": round(float(change), 2)
+                "price": round(today, 2),
+                "change": round(change, 2)
             }
 
         CACHE["data"] = assets
         CACHE["timestamp"] = time.time()
 
-    regime_assets = ["S&P 500", "NASDAQ", "Dow Jones"]
-    regime_score = sum(
-        assets[x]["change"] for x in regime_assets if x in assets
-    ) / len(regime_assets)
+    try:
+        regime_assets = ["S&P 500", "NASDAQ", "Dow Jones"]
+        regime_score = sum(
+            assets[x]["change"] for x in regime_assets if x in assets
+        ) / max(len(regime_assets), 1)
 
-    regime = "RISK ON" if regime_score > 0 else "RISK OFF"
+        regime = "RISK ON" if regime_score > 0 else "RISK OFF"
+
+    except Exception:
+        regime = "N/A"
 
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
 
