@@ -31,77 +31,52 @@ tickers = {
     "Bitcoin": "BTC-USD",
     "Ethereum": "ETH-USD",
 
-    "US 10Y Yield": "^TNX",
-    "India 10Y": "^IN10Y"
+    "US 10Y Yield": "^TNX"
 }
 
-
-def fetch_data():
-    data = {}
-
-    for name, symbol in tickers.items():
-        try:
-            ticker = yf.Ticker(symbol)
-            hist = ticker.history(period="2d")
-
-            if len(hist) < 2:
-                continue
-
-            current = float(hist["Close"].iloc[-1])
-            previous = float(hist["Close"].iloc[-2])
-            change = ((current - previous) / previous) * 100
-
-            data[name] = {
-                "price_raw": current,
-                "change": round(change, 2)
-            }
-
-        except:
-            continue
-
-    return data
+def safe_fetch(symbol):
+    try:
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period="2d")
+        if len(hist) < 2:
+            return None, 0
+        current = float(hist["Close"].iloc[-1])
+        previous = float(hist["Close"].iloc[-2])
+        change = ((current - previous) / previous) * 100
+        return current, round(change, 2)
+    except:
+        return None, 0
 
 
-def ai_commentary(name, change):
+def ai_comment(change):
     if change > 1:
-        return "Strong upside momentum building."
+        return "Strong upside momentum."
     elif change > 0:
         return "Mild positive bias."
     elif change < -1:
-        return "Heavy downside pressure visible."
+        return "Heavy downside pressure."
     elif change < 0:
         return "Soft negative drift."
-    else:
-        return "Flat session. Await catalyst."
-
-
-def ai_macro_summary(data):
-    risk_assets = ["S&P 500", "NASDAQ", "Bitcoin"]
-    safe_assets = ["Gold", "US 10Y Yield"]
-
-    risk_score = sum(data.get(x, {}).get("change", 0) for x in risk_assets)
-    safe_score = sum(data.get(x, {}).get("change", 0) for x in safe_assets)
-
-    if risk_score > 0 and safe_score < 0:
-        return "RISK-ON regime: equities firm, defensive assets soft."
-    elif risk_score < 0 and safe_score > 0:
-        return "RISK-OFF tone: capital rotating to safety."
-    else:
-        return "Mixed macro signals. No dominant regime detected."
+    return "Flat session."
 
 
 @app.route("/")
 def home():
 
-    raw = fetch_data()
+    data = {}
 
-    formatted = {}
-    usd_inr = raw.get("USD/INR", {}).get("price_raw", 83)
+    # Fetch USDINR first for conversion
+    usd_price, _ = safe_fetch("USDINR=X")
+    usd_inr = usd_price if usd_price else 83
 
-    for name, values in raw.items():
-        price = values["price_raw"]
-        change = values["change"]
+    for name, symbol in tickers.items():
 
+        price, change = safe_fetch(symbol)
+
+        if price is None:
+            continue
+
+        # Formatting
         if name == "Crude Oil":
             display = f"$ {price:,.2f}/bbl"
 
@@ -119,24 +94,25 @@ def home():
         elif name in ["Copper", "Wheat", "Bitcoin", "Ethereum"]:
             display = f"$ {price:,.2f}"
 
-        elif "Yield" in name or "10Y" in name:
+        elif "Yield" in name:
             display = f"{price:.2f}%"
 
         else:
             display = f"{price:,.2f}"
 
-        formatted[name] = {
+        data[name] = {
             "price": display,
             "change": change,
-            "ai": ai_commentary(name, change)
+            "ai": ai_comment(change)
         }
 
-    summary = ai_macro_summary(raw)
+    summary = "Macro regime mixed. Monitor bond-equity divergence."
+
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M")
 
     return render_template(
         "index.html",
-        data=formatted,
+        data=data,
         fed=FED_FUNDS,
         rbi=RBI_REPO,
         summary=summary,
