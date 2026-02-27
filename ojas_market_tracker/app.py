@@ -1,7 +1,5 @@
 from flask import Flask, render_template
 import yfinance as yf
-import pandas as pd
-import numpy as np
 import datetime
 import time
 
@@ -11,17 +9,17 @@ FED_FUNDS = 5.50
 RBI_REPO = 6.50
 
 CACHE = {}
-CACHE_TIME = 300
+CACHE_TIME = 120
 
 
-TICKERS = {
-    "Crude Oil": "CL=F",
-    "Natural Gas": "NG=F",
-    "Copper": "HG=F",
-    "Wheat": "ZW=F",
-    "Gold": "GC=F",
-    "Silver": "SI=F",
-    "USD/INR": "USDINR=X",
+ASSETS = {
+    "Crude Oil (WTI)": "CL=F",          # USD per barrel
+    "Natural Gas": "NG=F",              # USD per MMBtu
+    "Copper": "HG=F",                   # USD per lb
+    "Wheat": "ZW=F",                    # USD per bushel
+    "Gold": "GC=F",                     # USD per oz
+    "Silver": "SI=F",                   # USD per oz
+    "USD/INR": "USDINR=X",              # INR
     "EUR/INR": "EURINR=X",
     "AED/INR": "AEDINR=X",
     "S&P 500": "^GSPC",
@@ -31,109 +29,62 @@ TICKERS = {
     "Hang Seng": "^HSI",
     "NIFTY 50": "^NSEI",
     "Sensex": "^BSESN",
-    "Bitcoin": "BTC-USD",
-    "Ethereum": "ETH-USD",
-    "US 10Y Yield": "^TNX"
+    "Bitcoin": "BTC-USD",               # USD
+    "Ethereum": "ETH-USD",              # USD
+    "US 10Y Yield": "^TNX"              # ÷10
 }
 
 
-def fetch_data():
-    global CACHE
-    if "data" in CACHE and time.time() - CACHE["timestamp"] < CACHE_TIME:
-        return CACHE["data"]
-
-    df = yf.download(
-        list(TICKERS.values()),
-        period="3mo",
-        interval="1d",
-        progress=False,
-        auto_adjust=True
-    )["Close"]
-
-    df.columns = TICKERS.keys()
-    df = df.dropna(axis=1, how="all")
-
-    CACHE["data"] = df
-    CACHE["timestamp"] = time.time()
-    return df
-
-
-def normalize_usdinr(value):
-    if value < 60 or value > 120:
-        return 85.0
-    return value
-
-
-def ai_bias(momentum, volatility):
-    score = momentum - volatility
-    if score > 0.02:
-        return "Bullish", "▲", "green"
-    elif score < -0.02:
-        return "Bearish", "▼", "red"
-    else:
-        return "Neutral", "■", "orange"
+def fetch_asset(ticker):
+    data = yf.download(ticker, period="5d", interval="1d", progress=False)
+    if data.empty:
+        return None, None
+    close = data["Close"]
+    today = close.iloc[-1]
+    prev = close.iloc[-2] if len(close) > 1 else close.iloc[-1]
+    return today, prev
 
 
 @app.route("/")
 def home():
 
-    df = fetch_data()
-    latest = df.iloc[-1]
-    prev = df.iloc[-2]
+    global CACHE
 
-    assets = {}
+    if "data" in CACHE and time.time() - CACHE["timestamp"] < CACHE_TIME:
+        assets = CACHE["data"]
+    else:
+        assets = {}
 
-    usdinr = normalize_usdinr(latest.get("USD/INR", 85))
+        for name, ticker in ASSETS.items():
+            today, prev = fetch_asset(ticker)
 
-    for col in df.columns:
+            if today is None:
+                continue
 
-        today = latest[col]
-        yesterday = prev[col]
+            change = ((today - prev) / prev) * 100 if prev else 0
 
-        if pd.isna(today) or pd.isna(yesterday):
-            continue
+            # Fix US10Y scaling
+            if name == "US 10Y Yield":
+                today = today / 10
+                prev = prev / 10
+                change = ((today - prev) / prev) * 100 if prev else 0
 
-        change = ((today - yesterday) / yesterday) * 100
-        momentum = df[col].pct_change().tail(5).mean()
-        volatility = df[col].pct_change().tail(20).std()
+            assets[name] = {
+                "price": round(float(today), 2),
+                "change": round(float(change), 2)
+            }
 
-        bias, arrow, color = ai_bias(momentum, volatility)
-        confidence = min(round(abs(momentum)/(volatility+1e-6)*100,1),95)
+        CACHE["data"] = assets
+        CACHE["timestamp"] = time.time()
 
-        price = today
-
-        # GOLD → ₹ per 10g
-        if col == "Gold":
-            price = (today * usdinr * 10) / 31.1035
-
-        # SILVER → ₹ per kg
-        if col == "Silver":
-            price = (today * usdinr * 1000) / 31.1035
-
-        # US 10Y (^TNX is 10x)
-        if col == "US 10Y Yield":
-            price = today / 10
-
-        assets[col] = {
-            "price": round(float(price), 2),
-            "change": round(float(change), 2),
-            "momentum": round(momentum * 100, 2),
-            "volatility": round(volatility * 100, 2),
-            "bias": bias,
-            "arrow": arrow,
-            "color": color,
-            "confidence": confidence
-        }
-
-    regime_score = np.mean([
-        assets[x]["change"]
-        for x in ["S&P 500", "NASDAQ", "Dow Jones"]
-        if x in assets
-    ])
+    regime_assets = ["S&P 500", "NASDAQ", "Dow Jones"]
+    regime_score = sum(
+        assets[x]["change"] for x in regime_assets if x in assets
+    ) / len(regime_assets)
 
     regime = "RISK ON" if regime_score > 0 else "RISK OFF"
 
-    now = datetime.datetime.now().strftime("%d %b %Y | %H:%M")
+    now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
 
     return render_template(
         "index.html",

@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>OJAS AI MACRO INTELLIGENCE BOARD</title>
-<meta http-equiv="refresh" content="300">
+<title>OJAS RAW MACRO TERMINAL</title>
+<meta http-equiv="refresh" content="120">
 <style>
-body { background:#050b12; color:#e6edf3; font-family:Arial; padding:25px; }
+body { background:#060c14; color:#e6edf3; font-family:Arial; padding:25px; }
 h1 { text-align:center; letter-spacing:2px; }
 .banner { background:#102231; padding:12px; margin:20px 0; border-left:4px solid #00c8ff; }
 .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px; }
 .card { background:#0e1721; padding:18px; border-radius:8px; border:1px solid #1f2a36; }
-.green{color:#00e676;} .red{color:#ff5252;} .orange{color:#ff9800;}
+.green{color:#00e676;} .red{color:#ff5252;}
 .small{font-size:12px;color:#9aa4af;}
 </style>
 </head>
 <body>
 
-<h1>OJAS AI MACRO INTELLIGENCE BOARD</h1>
+<h1>OJAS RAW MACRO TERMINAL</h1>
 <div style="text-align:center;font-size:12px;">Live | {{ time }}</div>
 
 <div class="banner">
-AI Global Regime: <strong>{{ regime }}</strong>
+AI Regime: <strong>{{ regime }}</strong>
 </div>
 
 <div class="grid">
@@ -30,39 +30,11 @@ AI Global Regime: <strong>{{ regime }}</strong>
 <div class="small">{{ name }}</div>
 
 <div style="font-size:22px;margin-top:6px;">
-
-{% if name == "Gold" %}
-₹ {{ "{:,.2f}".format(asset.price) }} /10g
-{% elif name == "Silver" %}
-₹ {{ "{:,.2f}".format(asset.price) }} /kg
-{% elif "INR" in name %}
-₹ {{ "{:,.2f}".format(asset.price) }}
-{% elif name in ["Crude Oil"] %}
-$ {{ asset.price }} /bbl
-{% elif name == "Natural Gas" %}
-$ {{ asset.price }} /MMBtu
-{% elif name == "Copper" %}
-$ {{ asset.price }} /lb
-{% elif name == "Wheat" %}
-$ {{ asset.price }} /bushel
-{% elif name in ["Bitcoin","Ethereum"] %}
-$ {{ "{:,.2f}".format(asset.price) }}
-{% elif name == "US 10Y Yield" %}
-{{ asset.price }} %
-{% else %}
-{{ "{:,.2f}".format(asset.price) }}
-{% endif %}
-
+{{ asset.price }}
 </div>
 
-<div class="{{ asset.color }}">
-{{ asset.arrow }} {{ asset.change }}%
-</div>
-
-<div class="small">5D Mom: {{ asset.momentum }}%</div>
-<div class="small">20D Vol: {{ asset.volatility }}%</div>
-<div class="{{ asset.color }} small">
-AI Bias: {{ asset.bias }} ({{ asset.confidence }}%)
+<div class="{{ 'green' if asset.change > 0 else 'red' }}">
+{{ '▲' if asset.change > 0 else '▼' }} {{ asset.change }}%
 </div>
 
 </div>
@@ -71,7 +43,9 @@ AI Bias: {{ asset.bias }} ({{ asset.confidence }}%)
 </div>
 
 <br>
-<div class="card">Fed Funds: {{ fed }}% | RBI Repo: {{ rbi }}%</div>
+<div class="card">
+Fed Funds: {{ fed }}% | RBI Repo: {{ rbi }}%
+</div>
 
 </body>
 </html>
