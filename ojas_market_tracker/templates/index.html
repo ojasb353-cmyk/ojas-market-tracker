@@ -1,123 +1,127 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ojas's Personal Daily Tracker</title>
+<title>Ojas AI Macro Intelligence Board</title>
 <meta http-equiv="refresh" content="300">
 <style>
 body {
-    background: #0a0f14;
+    background: #050b12;
     color: #e6edf3;
     font-family: "Segoe UI", Arial, sans-serif;
     margin: 0;
-    padding: 20px;
+    padding: 25px;
 }
 
 h1 {
     text-align: center;
-    letter-spacing: 1px;
+    font-weight: 600;
+    letter-spacing: 2px;
 }
 
 .banner {
-    background: #111c26;
+    background: linear-gradient(90deg, #0f1f2e, #122a3d);
     padding: 12px;
     margin: 20px 0;
-    border-left: 4px solid #00bcd4;
-}
-
-.section {
-    margin-top: 30px;
+    border-left: 5px solid #00c8ff;
 }
 
 .section-title {
     font-size: 13px;
     color: #00c8ff;
+    margin-top: 30px;
     margin-bottom: 10px;
     letter-spacing: 1px;
 }
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
 }
 
 .card {
-    background: #111a23;
-    padding: 15px;
-    border-radius: 6px;
+    background: #0e1721;
+    padding: 18px;
+    border-radius: 8px;
     border: 1px solid #1f2a36;
 }
 
 .asset-name {
-    font-size: 12px;
+    font-size: 13px;
     color: #8b949e;
 }
 
 .price {
-    font-size: 20px;
-    margin-top: 5px;
+    font-size: 22px;
+    margin-top: 6px;
 }
 
-.change {
-    font-size: 13px;
-    margin-top: 5px;
+.metric {
+    font-size: 12px;
+    margin-top: 4px;
+    color: #9aa4af;
 }
 
 .green { color: #00e676; }
 .red { color: #ff5252; }
-.gray { color: #888; }
+.gray { color: #999; }
 
 .footer {
     margin-top: 40px;
-    background: #111c26;
+    background: #0e1721;
     padding: 15px;
 }
 </style>
 </head>
 <body>
 
-<h1>OJAS'S PERSONAL DAILY TRACKER</h1>
+<h1>OJAS AI MACRO INTELLIGENCE BOARD</h1>
 <div style="text-align:center; font-size:12px;">Live | {{ time }}</div>
 
 <div class="banner">
-AI Macro Regime: <strong>{{ regime }}</strong>
+AI Global Regime: <strong>{{ regime }}</strong>  
+(Short-term bias derived from momentum vs volatility model)
 </div>
 
-<div class="section">
-<div class="section-title">GLOBAL MARKETS</div>
+<div class="section-title">CROSS-ASSET OUTLOOK (2–3 Day AI View)</div>
 <div class="grid">
-{% for asset in assets.values() %}
+
+{% for name, asset in assets.items() %}
 <div class="card">
-<div class="asset-name">{{ asset.name }}</div>
+<div class="asset-name">{{ name }}</div>
 <div class="price">{{ asset.price }}</div>
-<div class="change {{ asset.color }}">
+
+<div class="metric {{ asset.color }}">
 {{ asset.arrow }} {{ asset.change }}%
 </div>
-</div>
-{% endfor %}
-</div>
+
+<div class="metric">5D Momentum: {{ asset.momentum }}%</div>
+<div class="metric">20D Volatility: {{ asset.volatility }}%</div>
+<div class="metric {{ asset.color }}">
+AI Bias: {{ asset.bias }} (Confidence {{ asset.confidence }}%)
 </div>
 
-<div class="section">
-<div class="section-title">POLICY RATES</div>
+</div>
+{% endfor %}
+
+</div>
+
+<div class="section-title">POLICY STRUCTURE</div>
 <div class="grid">
 <div class="card">
-<div class="asset-name">Fed Funds Rate</div>
-<div class="price">{{ fed }}%</div>
+Fed Funds Rate: {{ fed }}%
 </div>
 <div class="card">
-<div class="asset-name">RBI Repo Rate</div>
-<div class="price">{{ rbi }}%</div>
-</div>
+RBI Repo Rate: {{ rbi }}%
 </div>
 </div>
 
 <div class="footer">
-<strong>For Ojas Only:</strong><br>
-• Monitor USDINR vs US10Y divergence<br>
-• Gold vs real yield spread<br>
-• Crypto beta vs NASDAQ<br>
-• Equity momentum vs liquidity tightening
+<strong>AI Interpretation Logic:</strong><br>
+• Momentum > Volatility → Bullish pressure<br>
+• Volatility > Momentum → Risk caution<br>
+• Confidence reflects strength of directional imbalance<br>
+• Model recalculates every 5 minutes
 </div>
 
 </body>

@@ -22,6 +22,7 @@ TICKERS = {
     "Wheat": "ZW=F",
     "USD/INR": "USDINR=X",
     "EUR/INR": "EURINR=X",
+    "AED/INR": "AEDINR=X",
     "S&P 500": "^GSPC",
     "Dow Jones": "^DJI",
     "NASDAQ": "^IXIC",
@@ -31,8 +32,7 @@ TICKERS = {
     "Sensex": "^BSESN",
     "Bitcoin": "BTC-USD",
     "Ethereum": "ETH-USD",
-    "US 10Y Yield": "^TNX",
-    "VIX": "^VIX"
+    "US 10Y Yield": "^TNX"
 }
 
 
@@ -42,9 +42,8 @@ def fetch_data():
     if "data" in CACHE and time.time() - CACHE["timestamp"] < CACHE_TIME:
         return CACHE["data"]
 
-    df = yf.download(list(TICKERS.values()), period="5d", interval="1d", progress=False)["Close"]
+    df = yf.download(list(TICKERS.values()), period="3mo", interval="1d", progress=False)["Close"]
     df.columns = TICKERS.keys()
-
     df = df.dropna(axis=1, how="all")
 
     CACHE["data"] = df
@@ -53,59 +52,55 @@ def fetch_data():
     return df
 
 
-def format_asset(name, today, yesterday):
-    if pd.isna(today) or pd.isna(yesterday):
-        return None
+def ai_bias(momentum, volatility):
+    score = momentum - volatility
 
-    change = today - yesterday
-    pct = (change / yesterday) * 100 if yesterday != 0 else 0
-
-    arrow = "▲" if change > 0 else "▼" if change < 0 else "■"
-    color = "green" if change > 0 else "red" if change < 0 else "gray"
-
-    return {
-        "name": name,
-        "price": round(float(today), 2),
-        "change": round(float(pct), 2),
-        "arrow": arrow,
-        "color": color
-    }
-
-
-def compute_regime(assets):
-    eq = []
-    for index in ["S&P 500", "NASDAQ", "Dow Jones"]:
-        if index in assets:
-            eq.append(assets[index]["change"])
-
-    if not eq:
-        return "UNKNOWN"
-
-    avg = np.mean(eq)
-
-    if avg > 0.3:
-        return "RISK ON"
-    elif avg < -0.3:
-        return "RISK OFF"
+    if score > 0.02:
+        return "Bullish bias", "▲", "green"
+    elif score < -0.02:
+        return "Bearish bias", "▼", "red"
     else:
-        return "MIXED"
+        return "Range-bound", "■", "gray"
 
 
 @app.route("/")
 def home():
     df = fetch_data()
-
     latest = df.iloc[-1]
-    previous = df.iloc[-2]
+    prev = df.iloc[-2]
 
     assets = {}
 
     for col in df.columns:
-        formatted = format_asset(col, latest[col], previous[col])
-        if formatted:
-            assets[col] = formatted
 
-    regime = compute_regime(assets)
+        today = latest[col]
+        yesterday = prev[col]
+
+        if pd.isna(today) or pd.isna(yesterday):
+            continue
+
+        change = ((today - yesterday) / yesterday) * 100
+        momentum = df[col].pct_change().tail(5).mean()
+        volatility = df[col].pct_change().tail(20).std()
+
+        bias_text, arrow, color = ai_bias(momentum, volatility)
+
+        confidence = round(abs(momentum) / (volatility + 1e-6) * 100, 1)
+        confidence = min(confidence, 95)
+
+        assets[col] = {
+            "price": round(float(today), 2),
+            "change": round(float(change), 2),
+            "momentum": round(momentum * 100, 2),
+            "volatility": round(volatility * 100, 2),
+            "bias": bias_text,
+            "arrow": arrow,
+            "color": color,
+            "confidence": confidence
+        }
+
+    regime_score = np.mean([v["change"] for k, v in assets.items() if "S&P" in k or "NASDAQ" in k or "Dow" in k])
+    regime = "RISK ON" if regime_score > 0 else "RISK OFF"
 
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M")
 
