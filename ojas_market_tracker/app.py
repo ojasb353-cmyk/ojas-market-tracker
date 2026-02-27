@@ -4,11 +4,8 @@ import datetime
 
 app = Flask(__name__)
 
-# -------------------------------
-# SYMBOLS
-# -------------------------------
-
 symbols = {
+    # Commodities
     "Crude Oil": "CL=F",
     "Natural Gas": "NG=F",
     "Gold": "GC=F",
@@ -16,6 +13,7 @@ symbols = {
     "Copper": "HG=F",
     "Wheat": "ZW=F",
 
+    # Indices
     "S&P 500": "^GSPC",
     "Dow Jones": "^DJI",
     "NASDAQ": "^IXIC",
@@ -24,40 +22,20 @@ symbols = {
     "NIFTY 50": "^NSEI",
     "Sensex": "^BSESN",
 
+    # Crypto
     "Bitcoin": "BTC-USD",
     "Ethereum": "ETH-USD",
 
+    # Risk / Macro
     "US 10Y Yield": "^TNX",
     "VIX": "^VIX",
     "USD Index (DXY)": "DX-Y.NYB",
 }
 
-# -------------------------------
-# Helpers
-# -------------------------------
-
 def get_usd_inr():
     usd = yf.Ticker("USDINR=X")
     data = usd.history(period="1d")
     return data["Close"].iloc[-1]
-
-def format_currency(value, currency):
-    if currency == "INR":
-        return f"₹ {value:,.2f}"
-    elif currency == "USD":
-        return f"$ {value:,.2f}"
-    elif currency == "HKD":
-        return f"HK$ {value:,.2f}"
-    elif currency == "CNY":
-        return f"¥ {value:,.2f}"
-    elif currency == "%":
-        return f"{value:.2f}%"
-    else:
-        return f"{value:,.2f}"
-
-# -------------------------------
-# AI LOGIC
-# -------------------------------
 
 def ai_prediction(change):
     if change > 1:
@@ -67,10 +45,6 @@ def ai_prediction(change):
     else:
         return "► Sideways / Neutral", "orange"
 
-# -------------------------------
-# Core Data
-# -------------------------------
-
 def get_data():
     data = {}
     usd_inr = get_usd_inr()
@@ -78,7 +52,7 @@ def get_data():
     for name, ticker in symbols.items():
         try:
             stock = yf.Ticker(ticker)
-            hist = stock.history(period="7d")
+            hist = stock.history(period="5d")
 
             if len(hist) < 2:
                 continue
@@ -87,24 +61,84 @@ def get_data():
             previous = hist["Close"].iloc[-2]
             change = ((current - previous) / previous) * 100
 
-            currency = "USD"
+            unit = ""
+            display_price = ""
 
-            if name in ["NIFTY 50", "Sensex"]:
-                currency = "INR"
+            # ---------------- COMMODITIES ----------------
+
+            if name == "Gold":
+                # USD per ounce → INR per 10g
+                price_inr = current * usd_inr
+                price_10g = (price_inr / 31.1035) * 10
+                display_price = f"₹ {price_10g:,.2f}"
+                unit = "per 10g"
+
+            elif name == "Silver":
+                # USD per ounce → INR per kg
+                price_inr = current * usd_inr
+                price_kg = (price_inr / 31.1035) * 1000
+                display_price = f"₹ {price_kg:,.2f}"
+                unit = "per kg"
+
+            elif name == "Crude Oil":
+                price_inr = current * usd_inr
+                display_price = f"₹ {price_inr:,.2f}"
+                unit = "per barrel"
+
+            elif name == "Natural Gas":
+                price_inr = current * usd_inr
+                display_price = f"₹ {price_inr:,.2f}"
+                unit = "per MMBtu"
+
+            elif name == "Copper":
+                price_inr = current * usd_inr
+                display_price = f"₹ {price_inr:,.2f}"
+                unit = "per pound"
+
+            elif name == "Wheat":
+                price_inr = current * usd_inr
+                display_price = f"₹ {price_inr:,.2f}"
+                unit = "per bushel"
+
+            # ---------------- INDICES ----------------
+
+            elif name in ["NIFTY 50", "Sensex"]:
+                display_price = f"₹ {current:,.2f}"
+                unit = "Index"
+
             elif name == "Hang Seng":
-                currency = "HKD"
+                display_price = f"HK$ {current:,.2f}"
+                unit = "Index"
+
             elif name == "Shanghai Composite":
-                currency = "CNY"
+                display_price = f"¥ {current:,.2f}"
+                unit = "Index"
+
+            elif name in ["S&P 500", "Dow Jones", "NASDAQ"]:
+                display_price = f"{current:,.2f}"
+                unit = "Index"
+
+            # ---------------- CRYPTO ----------------
+
+            elif name in ["Bitcoin", "Ethereum"]:
+                display_price = f"$ {current:,.2f}"
+                unit = "USD"
+
+            # ---------------- RATES ----------------
+
             elif name in ["US 10Y Yield", "VIX"]:
-                currency = "%"
-            elif name in ["Crude Oil", "Natural Gas", "Gold", "Silver", "Copper", "Wheat"]:
-                current *= usd_inr
-                currency = "INR"
+                display_price = f"{current:.2f}%"
+                unit = "Percent"
+
+            elif name == "USD Index (DXY)":
+                display_price = f"{current:,.2f}"
+                unit = "Index"
 
             short_ai, color = ai_prediction(change)
 
             data[name] = {
-                "price": format_currency(current, currency),
+                "price": display_price,
+                "unit": unit,
                 "change": round(change, 2),
                 "ai_5d": short_ai,
                 "ai_1m": short_ai,
@@ -115,10 +149,6 @@ def get_data():
             continue
 
     return data
-
-# -------------------------------
-# Risk Mode
-# -------------------------------
 
 def get_risk_mode(data):
     try:
@@ -135,10 +165,6 @@ def get_risk_mode(data):
             return "NEUTRAL"
     except:
         return "NEUTRAL"
-
-# -------------------------------
-# ROUTE
-# -------------------------------
 
 @app.route("/")
 def home():
