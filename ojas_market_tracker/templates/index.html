@@ -1,77 +1,110 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ojas Global Macro Dashboard</title>
+    <title>Ojas' Personal Market Tracker</title>
     <meta http-equiv="refresh" content="60">
+
+    <!-- Nothing-style tech font -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+
     <style>
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            color: white;
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #0b0b0b;
+            color: #ffffff;
         }
 
         h1 {
             text-align: center;
-            padding: 20px;
-            margin: 0;
+            font-size: 32px;
+            margin-top: 30px;
+        }
+
+        .sub {
+            text-align: center;
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 20px;
         }
 
         .risk {
             text-align: center;
-            font-size: 20px;
+            font-size: 18px;
             margin-bottom: 10px;
         }
 
         .time {
             text-align: center;
-            font-size: 14px;
-            opacity: 0.7;
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 20px;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             padding: 30px;
         }
 
         .card {
-            background: rgba(255,255,255,0.05);
+            background: #111111;
             padding: 20px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid #1f1f1f;
         }
 
         .price {
-            font-size: 22px;
+            font-size: 20px;
             margin: 10px 0;
         }
 
-        .positive { color: #00ff9c; }
-        .negative { color: #ff4d4d; }
+        .green { color: #00C805; }     /* Bloomberg green */
+        .red { color: #FF3B30; }       /* Bloomberg red */
+        .orange { color: #FF9500; }    /* Neutral orange */
+
+        .ai {
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .section-title {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #888;
+        }
 
     </style>
 </head>
 <body>
 
-<h1>Ojas Global Macro Dashboard</h1>
-<div class="risk">{{ risk }}</div>
+<h1>Ojas' Personal Market Tracker</h1>
+<div class="sub">powered by ai prediction</div>
+
+<div class="risk">Global Risk Mode: {{ risk }}</div>
 <div class="time">Live Market Bulletin | {{ time }}</div>
 
 <div class="grid">
     {% for name, item in data.items() %}
     <div class="card">
         <h3>{{ name }}</h3>
+
         <div class="price">{{ item.price }}</div>
 
-        {% if item.change > 0 %}
-            <div class="positive">{{ item.change }} %</div>
-        {% else %}
-            <div class="negative">{{ item.change }} %</div>
-        {% endif %}
+        <div class="{{ item.color }}">
+            {{ item.change }} %
+        </div>
 
-        <div>{{ item.sentiment }}</div>
+        <div class="section-title">AI SUMMARY</div>
+        <div class="ai {{ item.color }}">{{ item.ai_5d }}</div>
+
+        <div class="section-title">Next 5 Days</div>
+        <div class="ai {{ item.color }}">{{ item.ai_5d }}</div>
+
+        <div class="section-title">1 Month Outlook</div>
+        <div class="ai {{ item.color }}">{{ item.ai_1m }}</div>
+
     </div>
     {% endfor %}
 </div>
