@@ -1,77 +1,78 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ojas' Personal Market Tracker</title>
-    <meta http-equiv="refresh" content="60">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
-
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Space Grotesk', sans-serif;
-            background-color: #0b0b0b;
-            color: #ffffff;
-        }
-
-        h1 { text-align: center; margin-top: 30px; }
-        .sub { text-align: center; font-size: 14px; color: #888; }
-        .risk { text-align: center; margin: 10px 0; }
-        .time { text-align: center; font-size: 12px; color: #777; margin-bottom: 20px; }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            padding: 30px;
-        }
-
-        .card {
-            background: #111;
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid #1f1f1f;
-        }
-
-        .price { font-size: 20px; margin: 8px 0; }
-        .unit { font-size: 12px; color: #777; }
-
-        .green { color: #00C805; }
-        .red { color: #FF3B30; }
-        .orange { color: #FF9500; }
-
-        .section { margin-top: 10px; font-size: 12px; color: #888; }
-        .value { font-size: 13px; }
-
-    </style>
+<title>Macro Regime Engine | Ojas</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+body { background:#0b0b0b; color:white; font-family:'Space Grotesk'; margin:0; }
+.section { padding:30px; }
+h1 { text-align:center; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:20px; }
+.card { background:#111; padding:20px; border:1px solid #222; border-radius:12px; }
+.green { color:#00C805; }
+.red { color:#FF3B30; }
+.orange { color:#FF9500; }
+.top-box { text-align:center; padding:30px; }
+.score { font-size:20px; }
+</style>
 </head>
 <body>
 
-<h1>Ojas' Personal Market Tracker</h1>
-<div class="sub">powered by ai prediction</div>
-<div class="risk">Global Risk Mode: {{ risk }}</div>
-<div class="time">Live Market Bulletin | {{ time }}</div>
+<div class="top-box">
+<h1>Macro Regime Engine</h1>
+<div class="{{ regime_color }}"><strong>{{ regime }}</strong></div>
+<div class="score">
+Risk Asset Score: {{ risk_score }} |
+Defensive Score: {{ defensive_score }} |
+Liquidity Score: {{ liquidity_score }}
+</div>
+<div>{{ time }}</div>
+</div>
 
+<div class="section">
+<h2>Risk Assets</h2>
 <div class="grid">
-{% for name, item in data.items() %}
-    <div class="card">
-        <h3>{{ name }}</h3>
-
-        <div class="price">{{ item.price }}</div>
-        <div class="unit">{{ item.unit }}</div>
-
-        <div class="{{ item.trend_color }}">
-            {{ item.change }}%
-        </div>
-
-        <div class="section">1 Month Trend</div>
-        <div class="value {{ item.trend_color }}">{{ item.trend }}</div>
-
-        <div class="section">Volatility (30D)</div>
-        <div class="value {{ item.vol_color }}">
-            {{ item.volatility }} — {{ item.vol_label }}
-        </div>
-    </div>
+{% for name, item in risk_data.items() %}
+<div class="card">
+<h3>{{ name }}</h3>
+<div>{{ item.price }}</div>
+<div class="{{ item.color }}">{{ item.trend }}</div>
+<div class="{{ item.vol_color }}">Vol: {{ item.vol }}</div>
+</div>
 {% endfor %}
+</div>
+</div>
+
+<div class="section">
+<h2>Defensive Assets</h2>
+<div class="grid">
+{% for name, item in defensive_data.items() %}
+<div class="card">
+<h3>{{ name }}</h3>
+<div>{{ item.price }}</div>
+<div class="{{ item.color }}">{{ item.trend }}</div>
+<div class="{{ item.vol_color }}">Vol: {{ item.vol }}</div>
+</div>
+{% endfor %}
+</div>
+</div>
+
+<div class="section">
+<h2>Commodities + FX</h2>
+<div class="grid">
+{% for name, item in commodity_data.items() %}
+<div class="card">
+<h3>{{ name }}</h3>
+<div>{{ item.price }}</div>
+</div>
+{% endfor %}
+{% for name, item in fx_data.items() %}
+<div class="card">
+<h3>{{ name }}</h3>
+<div>{{ item.price }}</div>
+</div>
+{% endfor %}
+</div>
 </div>
 
 </body>

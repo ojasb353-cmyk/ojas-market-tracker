@@ -6,186 +6,144 @@ import numpy as np
 
 app = Flask(__name__)
 
-symbols = {
-    # Commodities
-    "Crude Oil": "CL=F",
-    "Natural Gas": "NG=F",
-    "Gold": "GC=F",
-    "Silver": "SI=F",
-    "Copper": "HG=F",
-    "Wheat": "ZW=F",
+# -----------------------------
+# SYMBOL GROUPING
+# -----------------------------
 
-    # Indices
+RISK_ASSETS = {
     "S&P 500": "^GSPC",
-    "Dow Jones": "^DJI",
     "NASDAQ": "^IXIC",
-    "Shanghai Composite": "000001.SS",
-    "Hang Seng": "^HSI",
     "NIFTY 50": "^NSEI",
-    "Sensex": "^BSESN",
-
-    # Crypto
-    "Bitcoin": "BTC-USD",
-    "Ethereum": "ETH-USD",
-
-    # Macro
-    "US 10Y Yield": "^TNX",
-    "VIX": "^VIX",
-    "USD Index (DXY)": "DX-Y.NYB",
+    "Bitcoin": "BTC-USD"
 }
 
-def get_usd_inr():
-    usd = yf.Ticker("USDINR=X")
-    data = usd.history(period="1d")
-    return data["Close"].iloc[-1]
+DEFENSIVE_ASSETS = {
+    "Gold": "GC=F",
+    "US 10Y Yield": "^TNX",
+    "USD Index (DXY)": "DX-Y.NYB",
+    "VIX": "^VIX"
+}
 
-# -------- MOVING AVERAGE TREND --------
+COMMODITIES = {
+    "Crude Oil": "CL=F",
+    "Silver": "SI=F",
+    "Copper": "HG=F",
+    "Wheat": "ZW=F"
+}
 
-def moving_average_signal(df):
-    df["MA20"] = df["Close"].rolling(window=20).mean()
-    df["MA50"] = df["Close"].rolling(window=50).mean()
+FX = {
+    "USD/INR": "USDINR=X",
+    "EUR/INR": "EURINR=X",
+    "AED/INR": "AEDINR=X"
+}
+
+# -----------------------------
+# TREND MODEL (MA 20/50)
+# -----------------------------
+
+def trend_signal(df):
+    df["MA20"] = df["Close"].rolling(20).mean()
+    df["MA50"] = df["Close"].rolling(50).mean()
     latest = df.iloc[-1]
 
     if latest["MA20"] > latest["MA50"] and latest["Close"] > latest["MA20"]:
-        return "▲ Bullish Trend", "green"
+        return "Bullish", 1, "green"
     elif latest["MA20"] < latest["MA50"] and latest["Close"] < latest["MA20"]:
-        return "▼ Bearish Trend", "red"
+        return "Bearish", -1, "red"
     else:
-        return "► Neutral Structure", "orange"
+        return "Neutral", 0, "orange"
 
-# -------- VOLATILITY CALCULATION --------
+# -----------------------------
+# VOLATILITY (21D)
+# -----------------------------
 
-def calculate_volatility(df):
+def volatility(df):
     df["Returns"] = df["Close"].pct_change()
-    vol = df["Returns"].rolling(window=30).std().iloc[-1] * np.sqrt(252)
+    vol = df["Returns"].rolling(21).std().iloc[-1] * np.sqrt(252)
 
-    vol_percent = vol * 100
+    if pd.isna(vol):
+        return "N/A", "orange"
 
-    if vol_percent < 15:
-        return f"{vol_percent:.2f}%", "green", "Low Volatility"
-    elif vol_percent < 30:
-        return f"{vol_percent:.2f}%", "orange", "Moderate Volatility"
+    vol_pct = vol * 100
+
+    if vol_pct < 15:
+        return f"{vol_pct:.2f}%", "green"
+    elif vol_pct < 30:
+        return f"{vol_pct:.2f}%", "orange"
     else:
-        return f"{vol_percent:.2f}%", "red", "High Volatility"
+        return f"{vol_pct:.2f}%", "red"
 
-def get_data():
-    data = {}
-    usd_inr = get_usd_inr()
+# -----------------------------
+# DATA ENGINE
+# -----------------------------
 
-    for name, ticker in symbols.items():
+def process_assets(asset_dict):
+    output = {}
+    scores = []
+
+    for name, ticker in asset_dict.items():
         try:
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period="120d")
-
+            hist = yf.Ticker(ticker).history(period="120d")
             if len(hist) < 60:
                 continue
 
-            current = hist["Close"].iloc[-1]
-            previous = hist["Close"].iloc[-2]
-            change = ((current - previous) / previous) * 100
+            trend, score, color = trend_signal(hist)
+            vol, vol_color = volatility(hist)
+            price = hist["Close"].iloc[-1]
 
-            unit = ""
-            display_price = ""
-
-            # -------- COMMODITIES --------
-
-            if name == "Gold":
-                price_10g = (current / 31.1035) * 10 * usd_inr
-                display_price = f"₹ {price_10g:,.2f}"
-                unit = "per 10g"
-
-            elif name == "Silver":
-                price_kg = (current / 31.1035) * 1000 * usd_inr
-                display_price = f"₹ {price_kg:,.2f}"
-                unit = "per kg"
-
-            elif name == "Crude Oil":
-                display_price = f"₹ {current * usd_inr:,.2f}"
-                unit = "per barrel"
-
-            elif name == "Natural Gas":
-                display_price = f"₹ {current * usd_inr:,.2f}"
-                unit = "per MMBtu"
-
-            elif name == "Copper":
-                display_price = f"₹ {current * usd_inr:,.2f}"
-                unit = "per pound"
-
-            elif name == "Wheat":
-                display_price = f"₹ {current * usd_inr:,.2f}"
-                unit = "per bushel"
-
-            # -------- INDICES --------
-
-            elif name in [
-                "S&P 500", "Dow Jones", "NASDAQ",
-                "Shanghai Composite", "Hang Seng",
-                "NIFTY 50", "Sensex", "USD Index (DXY)"
-            ]:
-                display_price = f"{current:,.2f}"
-                unit = "Index"
-
-            # -------- CRYPTO --------
-
-            elif name in ["Bitcoin", "Ethereum"]:
-                display_price = f"$ {current:,.2f}"
-                unit = "USD"
-
-            # -------- RATES --------
-
-            elif name == "US 10Y Yield":
-                display_price = f"{current:.2f}%"
-                unit = "Yield"
-
-            elif name == "VIX":
-                display_price = f"{current:.2f}"
-                unit = "Volatility Index"
-
-            # -------- SIGNALS --------
-
-            trend_signal, trend_color = moving_average_signal(hist)
-            vol_value, vol_color, vol_label = calculate_volatility(hist)
-
-            data[name] = {
-                "price": display_price,
-                "unit": unit,
-                "change": round(change, 2),
-                "trend": trend_signal,
-                "trend_color": trend_color,
-                "volatility": vol_value,
-                "vol_color": vol_color,
-                "vol_label": vol_label
+            output[name] = {
+                "price": f"{price:,.2f}",
+                "trend": trend,
+                "color": color,
+                "vol": vol,
+                "vol_color": vol_color
             }
+
+            scores.append(score)
 
         except:
             continue
 
-    return data
+    avg_score = round(sum(scores) / len(scores), 2) if scores else 0
+    return output, avg_score
 
-def get_risk_mode(data):
-    try:
-        sp = data["S&P 500"]["change"]
-        btc = data["Bitcoin"]["change"]
-
-        if sp > 1 and btc > 1:
-            return "RISK ON"
-        elif sp < -1 and btc < -1:
-            return "RISK OFF"
-        else:
-            return "NEUTRAL"
-    except:
-        return "NEUTRAL"
+# -----------------------------
+# MAIN ROUTE
+# -----------------------------
 
 @app.route("/")
 def home():
-    market_data = get_data()
-    risk_mode = get_risk_mode(market_data)
+
+    risk_data, risk_score = process_assets(RISK_ASSETS)
+    defensive_data, defensive_score = process_assets(DEFENSIVE_ASSETS)
+    commodity_data, _ = process_assets(COMMODITIES)
+    fx_data, _ = process_assets(FX)
+
+    liquidity_score = round((-defensive_score + risk_score) / 2, 2)
+
+    if risk_score > defensive_score:
+        regime = "RISK ON"
+        regime_color = "green"
+    elif defensive_score > risk_score:
+        regime = "RISK OFF"
+        regime_color = "red"
+    else:
+        regime = "TRANSITION"
+        regime_color = "orange"
+
     now = datetime.datetime.now().strftime("%d %b %Y | %H:%M:%S")
 
     return render_template("index.html",
-                           data=market_data,
-                           time=now,
-                           risk=risk_mode)
+                           risk_data=risk_data,
+                           defensive_data=defensive_data,
+                           commodity_data=commodity_data,
+                           fx_data=fx_data,
+                           risk_score=risk_score,
+                           defensive_score=defensive_score,
+                           liquidity_score=liquidity_score,
+                           regime=regime,
+                           regime_color=regime_color,
+                           time=now)
 
 if __name__ == "__main__":
     app.run(debug=True)
