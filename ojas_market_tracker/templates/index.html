@@ -1,55 +1,154 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ojas' Personal Market Tracker</title>
+    <title>Global Macro Structure Dashboard | Ojas</title>
     <meta http-equiv="refresh" content="60">
+
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
 
     <style>
         body {
             margin: 0;
-            font-family: 'Space Grotesk', sans-serif;
             background-color: #0b0b0b;
             color: #ffffff;
+            font-family: 'Space Grotesk', sans-serif;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
-        h1 { text-align: center; margin-top: 30px; }
-        .sub { text-align: center; font-size: 14px; color: #888; }
-        .risk { text-align: center; margin: 10px 0; }
-        .time { text-align: center; font-size: 12px; color: #777; margin-bottom: 20px; }
+        /* ===== Top Terminal Strip ===== */
+        .top-strip {
+            background: #111;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            border-bottom: 1px solid #1a1a1a;
+        }
 
+        /* ===== Header Section ===== */
+        .header {
+            text-align: center;
+            padding: 40px 0 20px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        .risk {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #bbb;
+        }
+
+        .divider {
+            margin: 25px auto 0;
+            width: 60%;
+            border-bottom: 1px solid #1f1f1f;
+        }
+
+        /* ===== Grid Layout ===== */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            padding: 30px;
+            gap: 22px;
+            padding: 40px 20px 60px;
         }
 
+        /* ===== Card Styling ===== */
         .card {
             background: #111;
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid #1f1f1f;
+            padding: 22px;
+            border-radius: 14px;
+            border: 1px solid #1a1a1a;
+            transition: all 0.2s ease;
         }
 
-        .price { font-size: 20px; margin: 8px 0; }
-        .unit { font-size: 12px; color: #777; }
+        .card:hover {
+            border-color: #2a2a2a;
+            transform: translateY(-3px);
+        }
 
-        .green { color: #00C805; }
-        .red { color: #FF3B30; }
-        .orange { color: #FF9500; }
+        .card h3 {
+            margin: 0 0 12px 0;
+            font-weight: 500;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+        }
 
-        .section { margin-top: 10px; font-size: 12px; color: #888; }
-        .value { font-size: 13px; }
+        .price {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .unit {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 10px;
+        }
+
+        .change {
+            font-size: 14px;
+            margin-bottom: 14px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .section-value {
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* ===== Refined Colors ===== */
+        .green { color: #2ecc71; }
+        .red { color: #ff4d4d; }
+        .orange { color: #f39c12; }
+
+        /* ===== Footer ===== */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #1a1a1a;
+        }
 
     </style>
 </head>
 <body>
 
-<h1>Ojas' Personal Market Tracker</h1>
-<div class="sub">powered by ai prediction</div>
-<div class="risk">Global Risk Mode: {{ risk }}</div>
-<div class="time">Live Market Bulletin | {{ time }}</div>
+<div class="top-strip">
+    Live Macro Monitor | Trend × Volatility Classification | {{ time }}
+</div>
+
+<div class="header">
+    <h1>Global Macro Structure Dashboard</h1>
+    <div class="subtitle">
+        20/50 MA Trend | 30D Volatility | Cross-Asset Monitoring
+    </div>
+    <div class="risk">
+        Global Risk Mode: <strong>{{ risk }}</strong>
+    </div>
+    <div class="divider"></div>
+</div>
 
 <div class="grid">
 {% for name, item in data.items() %}
@@ -59,19 +158,29 @@
         <div class="price">{{ item.price }}</div>
         <div class="unit">{{ item.unit }}</div>
 
-        <div class="{{ item.trend_color }}">
+        <div class="change {{ item.trend_color }}">
             {{ item.change }}%
         </div>
 
-        <div class="section">1 Month Trend</div>
-        <div class="value {{ item.trend_color }}">{{ item.trend }}</div>
+        <div class="section-label">
+            Trend Structure (MA 20/50)
+        </div>
+        <div class="section-value {{ item.trend_color }}">
+            {{ item.trend }}
+        </div>
 
-        <div class="section">Volatility (30D)</div>
-        <div class="value {{ item.vol_color }}">
+        <div class="section-label">
+            Volatility Regime (30D Annualized)
+        </div>
+        <div class="section-value {{ item.vol_color }}">
             {{ item.volatility }} — {{ item.vol_label }}
         </div>
     </div>
 {% endfor %}
+</div>
+
+<div class="footer">
+    Data: Yahoo Finance | Model: MA 20/50 + 30D Volatility | Auto-refresh every 60s
 </div>
 
 </body>
