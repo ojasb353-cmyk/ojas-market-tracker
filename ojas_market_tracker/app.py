@@ -32,6 +32,11 @@ symbols = {
     "US 10Y Yield": "^TNX",
     "VIX": "^VIX",
     "USD Index (DXY)": "DX-Y.NYB",
+
+    # FX (NEW)
+    "USD/INR": "USDINR=X",
+    "EUR/INR": "EURINR=X",
+    "AED/INR": "AEDINR=X"
 }
 
 def get_usd_inr():
@@ -57,8 +62,12 @@ def moving_average_signal(df):
 
 def calculate_volatility(df):
     df["Returns"] = df["Close"].pct_change()
-    vol = df["Returns"].rolling(window=30).std().iloc[-1] * np.sqrt(252)
+    rolling_std = df["Returns"].rolling(window=30).std()
 
+    if pd.isna(rolling_std.iloc[-1]):
+        return "N/A", "orange", "Insufficient Data"
+
+    vol = rolling_std.iloc[-1] * np.sqrt(252)
     vol_percent = vol * 100
 
     if vol_percent < 15:
@@ -114,6 +123,12 @@ def get_data():
             elif name == "Wheat":
                 display_price = f"₹ {current * usd_inr:,.2f}"
                 unit = "per bushel"
+
+            # -------- FX --------
+
+            elif name in ["USD/INR", "EUR/INR", "AED/INR"]:
+                display_price = f"{current:.4f}"
+                unit = "FX Rate"
 
             # -------- INDICES --------
 
