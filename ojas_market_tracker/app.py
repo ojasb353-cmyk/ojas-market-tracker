@@ -7,12 +7,12 @@ import numpy as np
 app = Flask(__name__)
 
 symbols = {
-    # Commodities
-    "Crude Oil": "CL=F",
+    # Commodities (USD futures)
+    "Crude Oil (WTI)": "CL=F",
     "Natural Gas": "NG=F",
-    "Gold": "GC=F",
-    "Silver": "SI=F",
-    "Copper": "HG=F",
+    "Gold (USD/oz)": "GC=F",
+    "Silver (USD/oz)": "SI=F",
+    "Copper (USD/lb)": "HG=F",
     "Wheat": "ZW=F",
 
     # Indices
@@ -25,11 +25,11 @@ symbols = {
     "Sensex": "^BSESN",
 
     # Crypto
-    "Bitcoin": "BTC-USD",
-    "Ethereum": "ETH-USD",
+    "Bitcoin (USD)": "BTC-USD",
+    "Ethereum (USD)": "ETH-USD",
 
-    # Macro
-    "US 10Y Yield": "^TNX",
+    # Rates & Macro
+    "US 10Y Yield (%)": "^TNX",
     "VIX": "^VIX",
     "USD Index (DXY)": "DX-Y.NYB",
 
@@ -39,7 +39,7 @@ symbols = {
     "AED/INR": "AEDINR=X"
 }
 
-# ---------------- SAFE MA TREND ----------------
+# ---------------- MA STRATEGY ----------------
 
 def moving_average_signal(df):
     if len(df) < 60:
@@ -47,7 +47,6 @@ def moving_average_signal(df):
 
     df["MA20"] = df["Close"].rolling(20).mean()
     df["MA50"] = df["Close"].rolling(50).mean()
-
     latest = df.iloc[-1]
 
     if pd.isna(latest["MA20"]) or pd.isna(latest["MA50"]):
@@ -60,7 +59,7 @@ def moving_average_signal(df):
     else:
         return "► Neutral Structure", "orange"
 
-# ---------------- SAFE VOLATILITY ----------------
+# ---------------- VOLATILITY ----------------
 
 def calculate_volatility(df):
     if len(df) < 30:
@@ -82,7 +81,7 @@ def calculate_volatility(df):
     else:
         return f"{vol_pct:.2f}%", "red", "High Volatility"
 
-# ---------------- MAIN DATA ENGINE ----------------
+# ---------------- DATA ENGINE ----------------
 
 def get_data():
     data = {}
@@ -104,49 +103,32 @@ def get_data():
             previous = hist["Close"].iloc[-2]
             change = ((current - previous) / previous) * 100
 
-            # Default formatting
-            display_price = f"{current:,.2f}"
-            unit = ""
+            # ---- Formatting Rules ----
 
-            # FX formatting
-            if name in ["USD/INR", "EUR/INR", "AED/INR"]:
-                display_price = f"{current:.4f}"
-                unit = "FX Rate"
+            if "Bitcoin" in name or "Ethereum" in name:
+                price = f"$ {current:,.2f}"
 
-            # Crypto
-            elif name in ["Bitcoin", "Ethereum"]:
-                display_price = f"$ {current:,.2f}"
-                unit = "USD"
+            elif "Yield" in name:
+                price = f"{current:.2f}%"
 
-            # Yields
-            elif name == "US 10Y Yield":
-                display_price = f"{current:.2f}%"
-                unit = "Yield"
+            elif "USD/INR" in name or "EUR/INR" in name or "AED/INR" in name:
+                price = f"{current:.4f}"
 
-            # VIX
-            elif name == "VIX":
-                display_price = f"{current:.2f}"
-                unit = "Volatility Index"
+            elif "Gold" in name or "Silver" in name or "Copper" in name or "Crude" in name or "Gas" in name:
+                price = f"$ {current:,.2f}"
 
-            # Indices
-            elif name in [
-                "S&P 500", "Dow Jones", "NASDAQ",
-                "Shanghai Composite", "Hang Seng",
-                "NIFTY 50", "Sensex", "USD Index (DXY)"
-            ]:
-                display_price = f"{current:,.2f}"
-                unit = "Index"
+            elif "VIX" in name:
+                price = f"{current:.2f}"
 
-            # Commodities (no conversion now for stability)
             else:
-                display_price = f"{current:,.2f}"
+                price = f"{current:,.2f}"
 
             trend_signal, trend_color = moving_average_signal(hist)
             vol_value, vol_color, vol_label = calculate_volatility(hist)
 
             data[name] = {
-                "price": display_price,
-                "unit": unit,
+                "price": price,
+                "unit": "",
                 "change": round(change, 2),
                 "trend": trend_signal,
                 "trend_color": trend_color,
@@ -160,12 +142,10 @@ def get_data():
 
     return data
 
-# ---------------- RISK MODE ----------------
-
 def get_risk_mode(data):
     try:
         sp = data.get("S&P 500", {}).get("change", 0)
-        btc = data.get("Bitcoin", {}).get("change", 0)
+        btc = data.get("Bitcoin (USD)", {}).get("change", 0)
 
         if sp > 1 and btc > 1:
             return "RISK ON"
